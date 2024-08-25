@@ -21,8 +21,8 @@ type Storage struct {
 	db *sql.DB
 }
 
-func NewStorage() (*Storage, error) {
-	db, err := sql.Open("sqlite", getDataSource())
+func NewStorage(fileName string) (*Storage, error) {
+	db, err := sql.Open("sqlite", getDataSource(fileName))
 	if err != nil {
 		return nil, fmt.Errorf("open sqlite connection: %w", err)
 	}
@@ -34,21 +34,21 @@ func NewStorage() (*Storage, error) {
 	return &Storage{db: db}, nil
 }
 
-func getDataSource() string {
+func getDataSource(fileName string) string {
 	cacheDir, _ := os.UserCacheDir()
-	dataDir := filepath.Join(cacheDir, "todo-app")
+	dataDir := filepath.Join(cacheDir, "go-revise")
 	os.MkdirAll(dataDir, os.FileMode(0755))
 
 	// if file is not found, it will be created automatically
-	if _, err := os.Stat(filepath.Join(dataDir, "tasks.db")); os.IsNotExist(err) {
-		file, err := os.Create(filepath.Join(dataDir, "tasks.db"))
+	if _, err := os.Stat(filepath.Join(dataDir, fileName)); os.IsNotExist(err) {
+		file, err := os.Create(filepath.Join(dataDir, fileName))
 		if err != nil {
 			log.Fatal(err)
 		}
 		file.Close()
 	}
 
-	return filepath.Join(dataDir, "tasks.db")
+	return filepath.Join(dataDir, fileName)
 }
 
 func migrateSchema(db *sql.DB, nSteps *int) error {
