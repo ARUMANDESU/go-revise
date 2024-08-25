@@ -9,7 +9,7 @@ CREATE TABLE revise_items (
     name TEXT NOT NULL,
     description TEXT,
     tags TEXT,
-    iterations INTEGER NOT NULL DEFAULT 0,
+    iteration INTEGER NOT NULL DEFAULT 0,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     last_rivised_at TIMESTAMP,
