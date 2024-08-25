@@ -4,6 +4,7 @@ import (
 	"io"
 	"log/slog"
 	"os"
+	"path/filepath"
 )
 
 const (
@@ -16,13 +17,16 @@ const (
 func Setup(env string) (*slog.Logger, func()) {
 	var log *slog.Logger
 
-	err := os.MkdirAll("/tmp/go-revise", 0755)
+	cacheDir, _ := os.UserCacheDir()
+	dataDir := filepath.Join(cacheDir, "go-revise")
+
+	err := os.MkdirAll(dataDir, os.FileMode(0755))
 	if err != nil {
 		panic(err)
 	}
 
 	// Open or create the log file
-	logFile, err := os.OpenFile("/tmp/go-revise/log.txt", os.O_CREATE|os.O_WRONLY|os.O_APPEND, 0666)
+	logFile, err := os.OpenFile(filepath.Join(dataDir, "log.txt"), os.O_CREATE|os.O_WRONLY|os.O_APPEND, 0666)
 	if err != nil {
 		panic(err)
 	}
