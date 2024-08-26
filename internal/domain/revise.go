@@ -23,9 +23,12 @@ type ReviseItem struct {
 	NextRevisionAt time.Time
 }
 
+// StringArray is a custom type to handle string array in the database,
+// because sqlite does not support array types
 type StringArray []string
 
 func (a *StringArray) Scan(value interface{}) error {
+	// Scan a database value into a string array: "a,b,c" -> ["a","b","c"]
 	const op = "domain.StringArray.Scan"
 
 	if value == nil {
@@ -45,6 +48,7 @@ func (a *StringArray) Scan(value interface{}) error {
 }
 
 func (a StringArray) Value() driver.Value {
+	// transform the array into a string: ["a","b","c"] -> "a,b,c"
 	stringValue := strings.Join(a, ",")
 	if len(stringValue) == 0 {
 		return nil
