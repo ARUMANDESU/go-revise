@@ -1,6 +1,6 @@
 CREATE TABLE users (
     id TEXT PRIMARY KEY, -- UUID
-    telegram_id INTEGER NOT NULL,
+    telegram_id INTEGER NOT NULL
 );
 
 CREATE TABLE revise_items (

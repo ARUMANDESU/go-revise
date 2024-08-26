@@ -9,6 +9,7 @@ import (
 
 	"github.com/ARUMANDESU/go-revise/internal/domain"
 	"github.com/ARUMANDESU/go-revise/internal/storage"
+	"github.com/go-ozzo/ozzo-validation/is"
 	validation "github.com/go-ozzo/ozzo-validation/v4"
 	"github.com/gofrs/uuid"
 )
@@ -43,7 +44,7 @@ func NewRevise(log *slog.Logger, reviseProvider ReviseProvider, reviseManager Re
 func (r *Revise) Get(ctx context.Context, id string) (domain.ReviseItem, error) {
 	const op = "service.revise.get"
 
-	err := validation.Validate(id, validation.Required)
+	err := validation.Validate(id, validation.Required, is.UUID)
 	if err != nil {
 		return domain.ReviseItem{}, fmt.Errorf("%w: %w", ErrInvalidArgument, err)
 	}

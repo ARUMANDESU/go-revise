@@ -15,45 +15,51 @@ import (
 )
 
 //go:embed migrations
-var migrationsFs embed.FS
+var MigrationsFs embed.FS
 
 type Storage struct {
-	db *sql.DB
+	DB *sql.DB
 }
 
 func NewStorage(fileName string) (*Storage, error) {
-	db, err := sql.Open("sqlite", getDataSource(fileName))
+	filePath := getDataSource(fileName)
+	db, err := sql.Open("sqlite", filePath)
 	if err != nil {
 		return nil, fmt.Errorf("open sqlite connection: %w", err)
 	}
 
-	if err := migrateSchema(db, nil); err != nil {
+	if err := MigrateSchema(filePath, MigrationsFs, "", nil); err != nil {
 		return nil, fmt.Errorf("failed to perform migrations: %w", err)
 	}
 
-	return &Storage{db: db}, nil
+	return &Storage{DB: db}, nil
 }
 
-func getDataSource(fileName string) string {
-	cacheDir, _ := os.UserCacheDir()
-	dataDir := filepath.Join(cacheDir, "go-revise")
-	os.MkdirAll(dataDir, os.FileMode(0755))
-
-	// if file is not found, it will be created automatically
-	if _, err := os.Stat(filepath.Join(dataDir, fileName)); os.IsNotExist(err) {
-		file, err := os.Create(filepath.Join(dataDir, fileName))
-		if err != nil {
-			log.Fatal(err)
-		}
-		file.Close()
+func (s *Storage) Close() error {
+	if s == nil || s.DB == nil {
+		return nil
 	}
 
-	return filepath.Join(dataDir, fileName)
+	return s.DB.Close()
 }
 
-func migrateSchema(db *sql.DB, nSteps *int) error {
+// MigrateSchema performs migrations on the database
+//
+//	filePath_ is the path to the database file
+//	migrationsFs is the filesystem containing the migrations
+//	migrationTable is the name of the table to store migration information, by default it is "migrations"
+//	nSteps is the number of steps to migrate, if nil, all migrations will be applied
+func MigrateSchema(filePath string, migrationsFs embed.FS, migrationTable string, nSteps *int) error {
+	if migrationTable == "" {
+		migrationTable = "migrations"
+	}
+	db, err := sql.Open("sqlite", filePath)
+	if err != nil {
+		return fmt.Errorf("failed to open sqlite connection: %w", err)
+	}
+
 	migrateDriver, err := sqlite.WithInstance(db, &sqlite.Config{
-		MigrationsTable: "migrations",
+		MigrationsTable: migrationTable,
 	})
 	if err != nil {
 		return fmt.Errorf("failed to create migration driver: %w", err)
@@ -76,7 +82,6 @@ func migrateSchema(db *sql.DB, nSteps *int) error {
 
 	defer func() {
 		preparedMigrations.Close()
-		db.Close()
 	}()
 	if nSteps != nil {
 		fmt.Printf("stepping migrations %d...\n", *nSteps)
@@ -91,4 +96,23 @@ func migrateSchema(db *sql.DB, nSteps *int) error {
 
 	log.Println("Successfully applied db migrations")
 	return nil
+}
+
+func getDataSource(fileName string) string {
+	cacheDir, _ := os.UserCacheDir()
+	dataDir := filepath.Join(cacheDir, "go-revise")
+	os.MkdirAll(dataDir, os.FileMode(0755))
+
+	filePath := filepath.Join(dataDir, fileName)
+
+	// if file is not found, it will be created automatically
+	if _, err := os.Stat(filePath); os.IsNotExist(err) {
+		file, err := os.Create(filePath)
+		if err != nil {
+			log.Fatal(err)
+		}
+		file.Close()
+	}
+
+	return filePath
 }

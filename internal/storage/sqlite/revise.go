@@ -17,7 +17,7 @@ func (s Storage) GetRevise(ctx context.Context, id string) (domain.ReviseItem, e
 		FROM revise_items
 		WHERE id = ?
 		`
-	row := s.db.QueryRowContext(ctx, query, id)
+	row := s.DB.QueryRowContext(ctx, query, id)
 
 	var revise domain.ReviseItem
 	err := row.Scan(
@@ -67,7 +67,7 @@ func (s Storage) CreateRevise(ctx context.Context, revise domain.ReviseItem) err
 		revise.NextRevisionAt,
 	}
 
-	_, err := s.db.ExecContext(ctx, query, args...)
+	_, err := s.DB.ExecContext(ctx, query, args...)
 	if err != nil {
 		return domain.WrapErrorWithOp(err, op, "failed to create revise")
 	}
