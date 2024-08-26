@@ -52,14 +52,14 @@ func (s Storage) CreateRevise(ctx context.Context, revise domain.ReviseItem) err
 
 	query := `
 		INSERT INTO revise_items (id, user_id, name, description, tags, iteration, created_at, updated_at, last_rivised_at, next_revision_at) 
-		VALUES (?, ?, ?, ?, ?, ?)
+		VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
 		`
 	args := []interface{}{
 		revise.ID,
 		revise.UserID,
 		revise.Name,
 		revise.Description,
-		revise.Tags,
+		revise.Tags.Value(), // sqlite does not support array type, so we need to convert it to string
 		revise.Iteration,
 		revise.CreatedAt,
 		revise.UpdatedAt,

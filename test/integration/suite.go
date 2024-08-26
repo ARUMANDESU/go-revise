@@ -19,8 +19,8 @@ var migrationsFs embed.FS
 
 type Suite struct {
 	*testing.T
-	Log     *slog.Logger
-	Service service.Revise
+	LogHandler *slogassert.Handler
+	Service    service.Revise
 }
 
 func NewSuite(t *testing.T) (*Suite, func()) {
@@ -31,7 +31,7 @@ func NewSuite(t *testing.T) (*Suite, func()) {
 
 	storage, cleanup := setupSqlite(t)
 
-	return &Suite{T: t, Log: log, Service: service.NewRevise(log, storage, storage)},
+	return &Suite{T: t, LogHandler: handler, Service: service.NewRevise(log, storage, storage)},
 		func() { cleanup() }
 }
 

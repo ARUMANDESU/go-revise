@@ -31,12 +31,13 @@ func (a *StringArray) Scan(value interface{}) error {
 	if value == nil {
 		return nil // case when value from the db was NULL
 	}
+
 	s, ok := value.(string)
 	if !ok {
 		return fmt.Errorf("%s: failed to convert value to string", op)
 	}
 	tags := strings.Split(s, ",")
-	if len(tags) == 0 {
+	if len(tags) == 0 || tags[0] == "" {
 		return nil
 	}
 	*a = tags
@@ -44,5 +45,10 @@ func (a *StringArray) Scan(value interface{}) error {
 }
 
 func (a StringArray) Value() driver.Value {
-	return strings.Join(a, ",")
+	stringValue := strings.Join(a, ",")
+	if len(stringValue) == 0 {
+		return nil
+	}
+
+	return stringValue
 }

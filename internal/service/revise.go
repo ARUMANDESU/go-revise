@@ -72,7 +72,7 @@ func (r *Revise) Create(ctx context.Context, dto domain.CreateReviseItemDTO) (do
 	const op = "service.revise.create"
 
 	err := validation.ValidateStruct(&dto,
-		validation.Field(&dto.UserID, validation.Required),
+		validation.Field(&dto.UserID, validation.Required, is.UUID),
 		validation.Field(&dto.Name, validation.Required, validation.By(validateName)),
 		validation.Field(&dto.Tags, validation.By(validateTags)),
 		validation.Field(&dto.Description, validation.By(validateDescription)),
