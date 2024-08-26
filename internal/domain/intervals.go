@@ -29,6 +29,7 @@ const (
 )
 
 var IntervalMap = map[ReviseIteration]ReviseInterval{
+	0:  OneDay,
 	1:  OneDay,
 	2:  ThreeDays,
 	3:  OneWeek,

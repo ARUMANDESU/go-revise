@@ -8,15 +8,18 @@ import (
 	"time"
 
 	"github.com/ARUMANDESU/go-revise/internal/domain"
+	"github.com/ARUMANDESU/go-revise/internal/storage"
 	validation "github.com/go-ozzo/ozzo-validation/v4"
 	"github.com/gofrs/uuid"
 )
 
+//go:generate mockery --name ReviseProvider --output mocks
 type ReviseProvider interface {
 	GetRevise(ctx context.Context, id string) (domain.ReviseItem, error)
 	ListRevises(ctx context.Context, userID string) ([]domain.ReviseItem, domain.PaginationMetadata, error)
 }
 
+//go:generate mockery --name ReviseManager --output mocks
 type ReviseManager interface {
 	CreateRevise(ctx context.Context, revise domain.ReviseItem) error
 	UpdateRevise(ctx context.Context, revise domain.ReviseItem) (domain.ReviseItem, error)
@@ -29,8 +32,8 @@ type Revise struct {
 	reviseManager  ReviseManager
 }
 
-func NewRevise(log *slog.Logger, reviseProvider ReviseProvider, reviseManager ReviseManager) *Revise {
-	return &Revise{
+func NewRevise(log *slog.Logger, reviseProvider ReviseProvider, reviseManager ReviseManager) Revise {
+	return Revise{
 		log:            log,
 		reviseProvider: reviseProvider,
 		reviseManager:  reviseManager,
@@ -48,7 +51,7 @@ func (r *Revise) Get(ctx context.Context, id string) (domain.ReviseItem, error) 
 	revise, err := r.reviseProvider.GetRevise(ctx, id)
 	if err != nil {
 		switch {
-		case errors.Is(err, ErrNotFound):
+		case errors.Is(err, storage.ErrNotFound):
 			return domain.ReviseItem{}, ErrNotFound
 		default:
 			r.log.Error(domain.WrapErrorWithOp(err, op, "failed to get revise").Error())
@@ -106,12 +109,12 @@ func (r *Revise) Create(ctx context.Context, dto domain.CreateReviseItemDTO) (do
 	return revise, nil
 }
 
-func (r *Revise) Update(ctx context.Context, revise domain.ReviseItem) error {
+func (r *Revise) Update(ctx context.Context, revise domain.ReviseItem) (domain.ReviseItem, error) {
 	const op = "service.revise.update"
 	panic("not implemented") // TODO: Implement
 }
 
-func (r *Revise) Delete(ctx context.Context, id string) error {
+func (r *Revise) Delete(ctx context.Context, id string) (domain.ReviseItem, error) {
 	const op = "service.revise.delete"
 	panic("not implemented") // TODO: Implement
 }
