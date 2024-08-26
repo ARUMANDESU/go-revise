@@ -213,7 +213,7 @@ func TestService_Revise_Create_FailPath(t *testing.T) {
 		},
 		{
 			name:          "invalid description",
-			dto:           domain.CreateReviseItemDTO{UserID: gofakeit.UUID(), Name: gofakeit.BookTitle(), Description: ""},
+			dto:           domain.CreateReviseItemDTO{UserID: gofakeit.UUID(), Name: gofakeit.BookTitle(), Description: "1"},
 			expectedError: service.ErrInvalidArgument,
 		},
 	}
@@ -223,6 +223,115 @@ func TestService_Revise_Create_FailPath(t *testing.T) {
 			_, err := s.Service.Create(ctx, tt.dto)
 
 			assert.ErrorIs(t, err, tt.expectedError)
+		})
+	}
+}
+
+func TestService_Revise_Delete(t *testing.T) {
+	ctx := context.Background()
+	s, cleanup := NewSuite(t)
+	defer cleanup()
+
+	tests := []struct {
+		name   string
+		id     string
+		userID string
+	}{
+		{
+			name:   "existing item",
+			id:     "3e8b7e6e-8f6d-4b8e-9b8e-8f6d4b8e9b8e",
+			userID: "1e8b7e6e-8f6d-4b8e-9b8e-8f6d4b8e9b8e",
+		},
+		{
+			name:   "existing item 2",
+			id:     "4e8b7e6e-8f6d-4b8e-9b8e-8f6d4b8e9b8e",
+			userID: "2e8b7e6e-8f6d-4b8e-9b8e-8f6d4b8e9b8e",
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			reviseItem, err := s.Service.Delete(ctx, tt.id, tt.userID)
+
+			require.NoError(t, err)
+
+			assert.Empty(t, reviseItem)
+
+			_, err = s.Service.Get(ctx, tt.id)
+
+			assert.ErrorIs(t, err, service.ErrNotFound)
+		})
+	}
+}
+
+func TestService_Revise_Delete_FailPath(t *testing.T) {
+	ctx := context.Background()
+	s, cleanup := NewSuite(t)
+	defer cleanup()
+
+	tests := []struct {
+		name          string
+		id            string
+		userID        string
+		expectedError error
+		exists        bool
+	}{
+		{
+			name:          "non-existing item",
+			id:            "3e8b7e6e-8f6d-4b8e-9b8e-8f6d4b8e9b8f",
+			userID:        "1e8b7e6e-8f6d-4b8e-9b8e-8f6d4b8e9b8e",
+			expectedError: service.ErrNotFound,
+			exists:        false,
+		},
+		{
+			name:          "invalid id",
+			id:            "invalid",
+			userID:        "1e8b7e6e-8f6d-4b8e-9b8e-8f6d4b8e9b8e",
+			expectedError: service.ErrInvalidArgument,
+			exists:        false,
+		},
+		{
+			name:          "empty id",
+			id:            "",
+			userID:        "1e8b7e6e-8f6d-4b8e-9b8e-8f6d4b8e9b8e",
+			expectedError: service.ErrInvalidArgument,
+			exists:        false,
+		},
+		{
+			name:          "invalid user id",
+			id:            "3e8b7e6e-8f6d-4b8e-9b8e-8f6d4b8e9b8e",
+			userID:        "invalid",
+			expectedError: service.ErrInvalidArgument,
+			exists:        true,
+		},
+		{
+			name:          "empty user id",
+			id:            "3e8b7e6e-8f6d-4b8e-9b8e-8f6d4b8e9b8e",
+			userID:        "",
+			expectedError: service.ErrInvalidArgument,
+			exists:        true,
+		},
+		{
+			name:          "user id mismatch",
+			id:            "3e8b7e6e-8f6d-4b8e-9b8e-8f6d4b8e9b8e",
+			userID:        "2e8b7e6e-8f6d-4b8e-9b8e-8f6d4b8e9b8e",
+			expectedError: service.ErrUnauthorized,
+			exists:        true,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			_, err := s.Service.Delete(ctx, tt.id, tt.userID)
+
+			require.ErrorIs(t, err, tt.expectedError)
+
+			if tt.exists {
+				item, err := s.Service.Get(ctx, tt.id)
+
+				require.NoError(t, err)
+				assert.NotEmpty(t, item)
+			}
 		})
 	}
 }

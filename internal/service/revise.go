@@ -49,7 +49,7 @@ func (r *Revise) Get(ctx context.Context, id string) (domain.ReviseItem, error) 
 		return domain.ReviseItem{}, fmt.Errorf("%w: %w", ErrInvalidArgument, err)
 	}
 
-	revise, err := r.reviseProvider.GetRevise(ctx, id)
+	reviseItem, err := r.reviseProvider.GetRevise(ctx, id)
 	if err != nil {
 		switch {
 		case errors.Is(err, storage.ErrNotFound):
@@ -60,7 +60,7 @@ func (r *Revise) Get(ctx context.Context, id string) (domain.ReviseItem, error) 
 		}
 	}
 
-	return revise, nil
+	return reviseItem, nil
 }
 
 func (r *Revise) List(ctx context.Context, userID string) ([]domain.ReviseItem, domain.PaginationMetadata, error) {
@@ -87,7 +87,7 @@ func (r *Revise) Create(ctx context.Context, dto domain.CreateReviseItemDTO) (do
 		return domain.ReviseItem{}, ErrInternal
 	}
 
-	revise := domain.ReviseItem{
+	reviseItem := domain.ReviseItem{
 		ID:             id,
 		UserID:         uuid.FromStringOrNil(dto.UserID),
 		Name:           dto.Name,
@@ -102,12 +102,12 @@ func (r *Revise) Create(ctx context.Context, dto domain.CreateReviseItemDTO) (do
 
 	// TODO: create reminder
 
-	if err := r.reviseManager.CreateRevise(ctx, revise); err != nil {
+	if err := r.reviseManager.CreateRevise(ctx, reviseItem); err != nil {
 		r.log.Error(domain.WrapErrorWithOp(err, op, "failed to create revise").Error())
 		return domain.ReviseItem{}, ErrInternal
 	}
 
-	return revise, nil
+	return reviseItem, nil
 }
 
 func (r *Revise) Update(ctx context.Context, revise domain.ReviseItem) (domain.ReviseItem, error) {
@@ -115,7 +115,43 @@ func (r *Revise) Update(ctx context.Context, revise domain.ReviseItem) (domain.R
 	panic("not implemented") // TODO: Implement
 }
 
-func (r *Revise) Delete(ctx context.Context, id string) (domain.ReviseItem, error) {
+func (r *Revise) Delete(ctx context.Context, id string, userID string) (domain.ReviseItem, error) {
 	const op = "service.revise.delete"
-	panic("not implemented") // TODO: Implement
+
+	err := validation.Validate(id, validation.Required.Error("id must provided"), is.UUID.Error("id must be a valid UUID"))
+	if err != nil {
+		return domain.ReviseItem{}, fmt.Errorf("%w: %w", ErrInvalidArgument, err)
+	}
+	err = validation.Validate(userID, validation.Required.Error("userID must provided"), is.UUID.Error("userID must be a valid UUID"))
+	if err != nil {
+		return domain.ReviseItem{}, fmt.Errorf("%w: %w", ErrInvalidArgument, err)
+	}
+
+	reviseItem, err := r.reviseProvider.GetRevise(ctx, id)
+	if err != nil {
+		switch {
+		case errors.Is(err, storage.ErrNotFound):
+			return domain.ReviseItem{}, ErrNotFound
+		default:
+			r.log.Error(domain.WrapErrorWithOp(err, op, "failed to get revise").Error())
+			return domain.ReviseItem{}, ErrInternal
+		}
+	}
+
+	if reviseItem.UserID.String() != userID {
+		return domain.ReviseItem{}, ErrUnauthorized
+	}
+
+	reviseItem, err = r.reviseManager.DeleteRevise(ctx, id)
+	if err != nil {
+		switch {
+		case errors.Is(err, storage.ErrNotFound):
+			return domain.ReviseItem{}, ErrNotFound
+		default:
+			r.log.Error(domain.WrapErrorWithOp(err, op, "failed to get revise").Error())
+			return domain.ReviseItem{}, ErrInternal
+		}
+	}
+
+	return reviseItem, nil
 }

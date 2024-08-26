@@ -4,11 +4,10 @@ import (
 	"database/sql"
 	"embed"
 	"errors"
-	"fmt"
-	"log"
 	"os"
 	"path/filepath"
 
+	"github.com/ARUMANDESU/go-revise/internal/domain"
 	"github.com/golang-migrate/migrate/v4"
 	"github.com/golang-migrate/migrate/v4/database/sqlite"
 	"github.com/golang-migrate/migrate/v4/source/iofs"
@@ -22,14 +21,20 @@ type Storage struct {
 }
 
 func NewStorage(fileName string) (*Storage, error) {
-	filePath := getDataSource(fileName)
+	const op = "storage.sqlite.new_storage"
+
+	filePath, err := getDataSource(fileName)
+	if err != nil {
+		return nil, domain.WrapErrorWithOp(err, op, "failed to get data source")
+	}
+
 	db, err := sql.Open("sqlite", filePath)
 	if err != nil {
-		return nil, fmt.Errorf("open sqlite connection: %w", err)
+		return nil, domain.WrapErrorWithOp(err, op, "failed to open sqlite connection")
 	}
 
 	if err := MigrateSchema(filePath, MigrationsFs, "", nil); err != nil {
-		return nil, fmt.Errorf("failed to perform migrations: %w", err)
+		return nil, domain.WrapErrorWithOp(err, op, "failed to migrate schema")
 	}
 
 	return &Storage{DB: db}, nil
@@ -50,24 +55,26 @@ func (s *Storage) Close() error {
 //	migrationTable is the name of the table to store migration information, by default it is "migrations"
 //	nSteps is the number of steps to migrate, if nil, all migrations will be applied
 func MigrateSchema(filePath string, migrationsFs embed.FS, migrationTable string, nSteps *int) error {
+	const op = "storage.sqlite.migrate_schema"
+
 	if migrationTable == "" {
 		migrationTable = "migrations"
 	}
 	db, err := sql.Open("sqlite", filePath)
 	if err != nil {
-		return fmt.Errorf("failed to open sqlite connection: %w", err)
+		return domain.WrapErrorWithOp(err, op, "failed to open sqlite connection")
 	}
 
 	migrateDriver, err := sqlite.WithInstance(db, &sqlite.Config{
 		MigrationsTable: migrationTable,
 	})
 	if err != nil {
-		return fmt.Errorf("failed to create migration driver: %w", err)
+		return domain.WrapErrorWithOp(err, op, "failed to create migration driver")
 	}
 
 	srcDriver, err := iofs.New(migrationsFs, "migrations")
 	if err != nil {
-		return fmt.Errorf("failed to create migration source driver: %w", err)
+		return domain.WrapErrorWithOp(err, op, "failed to create migration source")
 	}
 
 	preparedMigrations, err := migrate.NewWithInstance(
@@ -77,28 +84,26 @@ func MigrateSchema(filePath string, migrationsFs embed.FS, migrationTable string
 		migrateDriver,
 	)
 	if err != nil {
-		return fmt.Errorf("failed to create migration tooling instance: %w", err)
+		return domain.WrapErrorWithOp(err, op, "failed to create prepared migrations")
 	}
 
 	defer func() {
 		preparedMigrations.Close()
 	}()
 	if nSteps != nil {
-		fmt.Printf("stepping migrations %d...\n", *nSteps)
 		err = preparedMigrations.Steps(*nSteps)
 	} else {
 		err = preparedMigrations.Up()
 	}
 
 	if err != nil && !errors.Is(err, migrate.ErrNoChange) {
-		return fmt.Errorf("failed to apply migrations: %w", err)
+		return domain.WrapErrorWithOp(err, op, "failed to apply migrations")
 	}
 
-	log.Println("Successfully applied db migrations")
 	return nil
 }
 
-func getDataSource(fileName string) string {
+func getDataSource(fileName string) (string, error) {
 	cacheDir, _ := os.UserCacheDir()
 	dataDir := filepath.Join(cacheDir, "go-revise")
 	os.MkdirAll(dataDir, os.FileMode(0755))
@@ -109,10 +114,10 @@ func getDataSource(fileName string) string {
 	if _, err := os.Stat(filePath); os.IsNotExist(err) {
 		file, err := os.Create(filePath)
 		if err != nil {
-			log.Fatal(err)
+			return "", domain.WrapError(err, "failed to create database file")
 		}
 		file.Close()
 	}
 
-	return filePath
+	return filePath, nil
 }

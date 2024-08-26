@@ -81,6 +81,22 @@ func (s Storage) UpdateRevise(ctx context.Context, revise domain.ReviseItem) (do
 }
 
 func (s Storage) DeleteRevise(ctx context.Context, id string) (domain.ReviseItem, error) {
-	// TODO: Implement
-	panic("not implemented")
+	const op = "storage.sqlite.revise.deleteRevise"
+
+	query := `DELETE FROM revise_items WHERE id = ?`
+
+	result, err := s.DB.ExecContext(ctx, query, id)
+	if err != nil {
+		return domain.ReviseItem{}, domain.WrapErrorWithOp(err, op, "failed to delete revise")
+	}
+
+	rowsAffected, err := result.RowsAffected()
+	if err != nil {
+		return domain.ReviseItem{}, domain.WrapErrorWithOp(err, op, "failed to get rows affected")
+	}
+	if rowsAffected == 0 {
+		return domain.ReviseItem{}, domain.WrapErrorWithOp(storage.ErrNotFound, op, "failed to delete revise")
+	}
+
+	return domain.ReviseItem{}, nil
 }

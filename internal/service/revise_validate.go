@@ -13,7 +13,7 @@ const (
 	ValidNameMinLength = 2
 	ValidNameMaxLength = 50
 
-	ValidDescriptionMinLength = 0
+	ValidDescriptionMinLength = 2
 	ValidDescriptionMaxLength = 1000
 )
 

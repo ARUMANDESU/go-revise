@@ -10,7 +10,8 @@ import (
 	"github.com/ARUMANDESU/go-revise/internal/storage"
 	"github.com/ARUMANDESU/go-revise/pkg/logger"
 	"github.com/brianvoe/gofakeit/v7"
-	"github.com/google/uuid"
+	"github.com/gofrs/uuid"
+	guuid "github.com/google/uuid"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/mock"
 	"github.com/stretchr/testify/require"
@@ -44,7 +45,7 @@ func TestRevise_Get(t *testing.T) {
 	}{
 		{
 			name:       "success",
-			id:         uuid.New().String(),
+			id:         guuid.New().String(),
 			provideErr: nil,
 			wantErr:    nil,
 		},
@@ -56,13 +57,13 @@ func TestRevise_Get(t *testing.T) {
 		},
 		{
 			name:       "error: revise not found",
-			id:         uuid.New().String(),
+			id:         guuid.New().String(),
 			provideErr: storage.ErrNotFound,
 			wantErr:    ErrNotFound,
 		},
 		{
 			name:       "error: internal error",
-			id:         uuid.New().String(),
+			id:         guuid.New().String(),
 			provideErr: errors.New("unexpected db error"),
 			wantErr:    ErrInternal,
 		},
@@ -94,7 +95,7 @@ func TestRevise_Create(t *testing.T) {
 		{
 			name: "success",
 			dto: domain.CreateReviseItemDTO{
-				UserID:      uuid.New().String(),
+				UserID:      guuid.New().String(),
 				Name:        gofakeit.LetterN(ValidNameMinLength + 1),
 				Tags:        []string{gofakeit.LetterN(ValidTagsMinLength + 1)},
 				Description: gofakeit.Sentence(ValidDescriptionMinLength + 1),
@@ -105,7 +106,7 @@ func TestRevise_Create(t *testing.T) {
 		{
 			name: "success: empty tags and description",
 			dto: domain.CreateReviseItemDTO{
-				UserID: uuid.New().String(),
+				UserID: guuid.New().String(),
 				Name:   gofakeit.LetterN(ValidNameMinLength + 1),
 			},
 			mockErr: nil,
@@ -123,7 +124,7 @@ func TestRevise_Create(t *testing.T) {
 		{
 			name: "error: internal error",
 			dto: domain.CreateReviseItemDTO{
-				UserID: uuid.New().String(),
+				UserID: guuid.New().String(),
 				Name:   gofakeit.LetterN(ValidNameMinLength + 1),
 			},
 			mockErr: errors.New("unexpected db error"),
@@ -164,4 +165,140 @@ func TestRevise_Create(t *testing.T) {
 			}
 		})
 	}
+}
+
+func TestRevise_Delete(t *testing.T) {
+	t.Run("success", func(t *testing.T) {
+		s := NewSuite(t)
+		revisionID := guuid.New().String()
+		userID := guuid.New().String()
+		expectedItem := domain.ReviseItem{
+			ID:     uuid.FromStringOrNil(revisionID),
+			UserID: uuid.FromStringOrNil(userID),
+			Name:   gofakeit.LetterN(ValidNameMinLength + 1),
+		}
+
+		s.mockReviseProvider.On("GetRevise", mock.Anything, revisionID).Return(expectedItem, nil)
+		defer s.mockReviseProvider.AssertExpectations(t)
+		s.mockReviseManager.On("DeleteRevise", mock.Anything, revisionID).Return(expectedItem, nil)
+		defer s.mockReviseManager.AssertExpectations(t)
+
+		gotItem, err := s.service.Delete(context.Background(), revisionID, userID)
+
+		require.NoError(t, err)
+
+		assert.Equal(t, expectedItem, gotItem)
+	})
+}
+
+func TestRevise_Delete_FailPath(t *testing.T) {
+
+	revisionID := guuid.New().String()
+	userID := guuid.New().String()
+
+	tests := []struct {
+		name        string
+		revisionID  string
+		userID      string
+		reviseItem  domain.ReviseItem
+		onGetErr    error
+		onDeleteErr error
+		wantErr     error
+	}{
+		{
+			name:        "error: empty ID",
+			revisionID:  "",
+			userID:      userID,
+			reviseItem:  domain.ReviseItem{},
+			onGetErr:    nil,
+			onDeleteErr: nil,
+			wantErr:     ErrInvalidArgument,
+		},
+		{
+			name:        "error: empty user ID",
+			revisionID:  revisionID,
+			userID:      "",
+			reviseItem:  domain.ReviseItem{},
+			onGetErr:    nil,
+			onDeleteErr: nil,
+			wantErr:     ErrInvalidArgument,
+		},
+		{
+			name:        "error: revise not found",
+			revisionID:  revisionID,
+			userID:      userID,
+			reviseItem:  domain.ReviseItem{},
+			onGetErr:    storage.ErrNotFound,
+			onDeleteErr: nil,
+			wantErr:     ErrNotFound,
+		},
+		{
+			name:       "error: not found on delete",
+			revisionID: revisionID,
+			userID:     userID,
+			reviseItem: domain.ReviseItem{
+				ID:     uuid.FromStringOrNil(revisionID),
+				UserID: uuid.FromStringOrNil(userID),
+			},
+			onGetErr:    nil,
+			onDeleteErr: storage.ErrNotFound,
+			wantErr:     ErrNotFound,
+		},
+		{
+			name:       "error: unauthorized",
+			revisionID: revisionID,
+			userID:     userID,
+			reviseItem: domain.ReviseItem{
+				ID:     uuid.FromStringOrNil(revisionID),
+				UserID: uuid.FromStringOrNil(guuid.New().String()), // different user ID
+			},
+			onGetErr:    nil,
+			onDeleteErr: nil,
+			wantErr:     ErrUnauthorized,
+		},
+		{
+			name:        "error: internal error",
+			revisionID:  revisionID,
+			userID:      userID,
+			reviseItem:  domain.ReviseItem{},
+			onGetErr:    errors.New("unexpected db error"),
+			onDeleteErr: nil,
+			wantErr:     ErrInternal,
+		},
+		{
+			name:       "error: internal error",
+			revisionID: revisionID,
+			userID:     userID,
+			// this is not empty to not get unauthorized error
+			// because first "get" is successful and then it checks the user ID
+			// and then it tries to delete it and fails
+			reviseItem: domain.ReviseItem{
+				ID:     uuid.FromStringOrNil(revisionID),
+				UserID: uuid.FromStringOrNil(userID),
+			},
+			onGetErr:    nil,
+			onDeleteErr: errors.New("unexpected db error"),
+			wantErr:     ErrInternal,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			s := NewSuite(t)
+
+			if !errors.Is(tt.wantErr, ErrInvalidArgument) {
+				s.mockReviseProvider.On("GetRevise", mock.Anything, tt.revisionID).Return(tt.reviseItem, tt.onGetErr)
+				defer s.mockReviseProvider.AssertExpectations(t)
+				if tt.onGetErr == nil && !errors.Is(tt.wantErr, ErrUnauthorized) {
+					s.mockReviseManager.On("DeleteRevise", mock.Anything, tt.revisionID).Return(tt.reviseItem, tt.onDeleteErr)
+					defer s.mockReviseManager.AssertExpectations(t)
+				}
+			}
+
+			_, err := s.service.Delete(context.Background(), tt.revisionID, tt.userID)
+
+			assert.ErrorIs(t, err, tt.wantErr)
+		})
+	}
+
 }
