@@ -14,15 +14,15 @@ tasks:
   test:unit:
     aliases:
       - tu
-    cmd: gotest -v -short ./...
+    cmd: gotest -v -short $(go list ./... | grep -v '/test')
 
   test:unit:race:
     aliases:
       - tur
-    cmd: gotest -v -race -short ./...
+    cmd: gotest -v -race -short $(go list ./... | grep -v '/test')
 
 
   test:integration:
     aliases:
       - ti
-    cmd: gotest -v ./tests/...
+    cmd: gotest -v ./test/...
