@@ -31,7 +31,16 @@ func NewSuite(t *testing.T) (*Suite, func()) {
 
 	storage, cleanup := setupSqlite(t)
 
-	return &Suite{T: t, LogHandler: handler, Service: service.NewRevise(log, storage, storage)},
+	return &Suite{
+			T:          t,
+			LogHandler: handler,
+			Service: service.NewRevise(log,
+				service.ReviseStorages{
+					ReviseProvider: storage,
+					ReviseManager:  storage,
+					UserProvider:   storage,
+				},
+			)},
 		func() { cleanup() }
 }
 

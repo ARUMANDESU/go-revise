@@ -42,9 +42,9 @@ func (_m *ReviseProvider) GetRevise(ctx context.Context, id string) (domain.Revi
 	return r0, r1
 }
 
-// ListRevises provides a mock function with given fields: ctx, userID
-func (_m *ReviseProvider) ListRevises(ctx context.Context, userID string) ([]domain.ReviseItem, domain.PaginationMetadata, error) {
-	ret := _m.Called(ctx, userID)
+// ListRevises provides a mock function with given fields: ctx, dto
+func (_m *ReviseProvider) ListRevises(ctx context.Context, dto domain.ListReviseItemDTO) ([]domain.ReviseItem, domain.PaginationMetadata, error) {
+	ret := _m.Called(ctx, dto)
 
 	if len(ret) == 0 {
 		panic("no return value specified for ListRevises")
@@ -53,25 +53,25 @@ func (_m *ReviseProvider) ListRevises(ctx context.Context, userID string) ([]dom
 	var r0 []domain.ReviseItem
 	var r1 domain.PaginationMetadata
 	var r2 error
-	if rf, ok := ret.Get(0).(func(context.Context, string) ([]domain.ReviseItem, domain.PaginationMetadata, error)); ok {
-		return rf(ctx, userID)
+	if rf, ok := ret.Get(0).(func(context.Context, domain.ListReviseItemDTO) ([]domain.ReviseItem, domain.PaginationMetadata, error)); ok {
+		return rf(ctx, dto)
 	}
-	if rf, ok := ret.Get(0).(func(context.Context, string) []domain.ReviseItem); ok {
-		r0 = rf(ctx, userID)
+	if rf, ok := ret.Get(0).(func(context.Context, domain.ListReviseItemDTO) []domain.ReviseItem); ok {
+		r0 = rf(ctx, dto)
 	} else {
 		if ret.Get(0) != nil {
 			r0 = ret.Get(0).([]domain.ReviseItem)
 		}
 	}
 
-	if rf, ok := ret.Get(1).(func(context.Context, string) domain.PaginationMetadata); ok {
-		r1 = rf(ctx, userID)
+	if rf, ok := ret.Get(1).(func(context.Context, domain.ListReviseItemDTO) domain.PaginationMetadata); ok {
+		r1 = rf(ctx, dto)
 	} else {
 		r1 = ret.Get(1).(domain.PaginationMetadata)
 	}
 
-	if rf, ok := ret.Get(2).(func(context.Context, string) error); ok {
-		r2 = rf(ctx, userID)
+	if rf, ok := ret.Get(2).(func(context.Context, domain.ListReviseItemDTO) error); ok {
+		r2 = rf(ctx, dto)
 	} else {
 		r2 = ret.Error(2)
 	}

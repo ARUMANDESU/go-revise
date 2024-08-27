@@ -3,6 +3,7 @@ module github.com/ARUMANDESU/go-revise
 go 1.23.0
 
 require (
+	github.com/brianvoe/gofakeit v3.18.0+incompatible
 	github.com/brianvoe/gofakeit/v7 v7.0.4
 	github.com/go-ozzo/ozzo-validation v3.6.0+incompatible
 	github.com/go-ozzo/ozzo-validation/v4 v4.3.0

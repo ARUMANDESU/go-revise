@@ -1,4 +1,4 @@
-package service
+package domain
 
 import (
 	"errors"
@@ -17,7 +17,7 @@ const (
 	ValidDescriptionMaxLength = 1000
 )
 
-func validateTags(value any) error {
+func ValidateTags(value any) error {
 	tags, ok := value.([]string)
 	if !ok {
 		return errors.New("tags must be a slice of strings")
@@ -26,7 +26,7 @@ func validateTags(value any) error {
 	return validation.Validate(tags, validation.Each(validation.Required, validation.Length(ValidTagsMinLength, ValidTagsMaxLength)))
 }
 
-func validateName(value any) error {
+func ValidateName(value any) error {
 	name, ok := value.(string)
 	if !ok {
 		return errors.New("name must be a string")
@@ -35,7 +35,7 @@ func validateName(value any) error {
 	return validation.Validate(name, validation.Length(ValidNameMinLength, ValidNameMaxLength))
 }
 
-func validateDescription(value any) error {
+func ValidateDescription(value any) error {
 	description, ok := value.(string)
 	if !ok {
 		return errors.New("description must be a string")

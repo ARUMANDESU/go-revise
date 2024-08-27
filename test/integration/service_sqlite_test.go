@@ -2,6 +2,7 @@ package integration
 
 import (
 	"context"
+	"errors"
 	"strings"
 	"testing"
 
@@ -595,6 +596,127 @@ func TestService_Revise_Update_FailPaht(t *testing.T) {
 			_, err := s.Service.Update(ctx, tt.dto)
 
 			assert.ErrorIs(t, err, tt.expectedError)
+		})
+	}
+}
+
+func TestService_Revise_List_HappyPath(t *testing.T) {
+	ctx := context.Background()
+	s, cleanup := NewSuite(t)
+	defer cleanup()
+
+	tests := []struct {
+		name           string
+		dto            domain.ListReviseItemDTO
+		expectedLength int
+	}{
+		{
+			name: "user id",
+			dto: domain.ListReviseItemDTO{
+				UserID: "1e8b7e6e-8f6d-4b8e-9b8e-8f6d4b8e9b8e",
+			},
+			expectedLength: 2,
+		},
+		{
+			name: "sort by created at",
+			dto: domain.ListReviseItemDTO{
+				UserID: "1e8b7e6e-8f6d-4b8e-9b8e-8f6d4b8e9b8e",
+				Sort:   domain.NewSort(domain.SortFieldDefault, ""),
+			},
+			expectedLength: 2,
+		},
+		{
+			name: "sort by created at asc",
+			dto: domain.ListReviseItemDTO{
+				UserID: "1e8b7e6e-8f6d-4b8e-9b8e-8f6d4b8e9b8e",
+				Sort:   domain.NewSort(domain.SortFieldCreatedAt, domain.SortOrderAsc),
+			},
+			expectedLength: 2,
+		},
+		{
+			name: "pagination",
+			dto: domain.ListReviseItemDTO{
+				UserID:     "1e8b7e6e-8f6d-4b8e-9b8e-8f6d4b8e9b8e",
+				Pagination: domain.NewPagination(1, 1),
+			},
+			expectedLength: 1,
+		},
+		{
+			name: "pagination 2",
+			dto: domain.ListReviseItemDTO{
+				UserID:     "1e8b7e6e-8f6d-4b8e-9b8e-8f6d4b8e9b8e",
+				Pagination: domain.NewPagination(2, 1),
+			},
+			expectedLength: 1,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			items, _, err := s.Service.List(ctx, tt.dto)
+
+			s.LogHandler.AssertEmpty()
+
+			require.NoError(t, err)
+
+			assert.Len(t, items, tt.expectedLength)
+		})
+	}
+
+}
+
+func TestService_Revise_List_FailPath(t *testing.T) {
+	ctx := context.Background()
+	s, cleanup := NewSuite(t)
+	defer cleanup()
+
+	invalidPagination := domain.Pagination{Page: 0, PageSize: 1}
+	invalidPagination2 := domain.Pagination{Page: 1, PageSize: 0}
+
+	tests := []struct {
+		name          string
+		dto           domain.ListReviseItemDTO
+		expectedError error
+	}{
+		{
+			name:          "empty user id",
+			dto:           domain.ListReviseItemDTO{},
+			expectedError: service.ErrInvalidArgument,
+		},
+		{
+			name:          "invalid user id",
+			dto:           domain.ListReviseItemDTO{UserID: "invalid"},
+			expectedError: service.ErrInvalidArgument,
+		},
+		{
+			name:          "invalid sort field",
+			dto:           domain.ListReviseItemDTO{UserID: gofakeit.UUID(), Sort: domain.NewSort("invalid", "")},
+			expectedError: service.ErrInvalidArgument,
+		},
+		{
+			name:          "invalid sort order",
+			dto:           domain.ListReviseItemDTO{UserID: gofakeit.UUID(), Sort: domain.NewSort(domain.SortFieldCreatedAt, "invalid")},
+			expectedError: service.ErrInvalidArgument,
+		},
+		{
+			name:          "invalid pagination",
+			dto:           domain.ListReviseItemDTO{UserID: gofakeit.UUID(), Pagination: &invalidPagination},
+			expectedError: service.ErrInvalidArgument,
+		},
+		{
+			name:          "invalid pagination 2",
+			dto:           domain.ListReviseItemDTO{UserID: gofakeit.UUID(), Pagination: &invalidPagination2},
+			expectedError: service.ErrInvalidArgument,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			_, _, err := s.Service.List(ctx, tt.dto)
+
+			if !errors.Is(err, tt.expectedError) {
+				t.Errorf("expected error %v, got %v", tt.expectedError, err)
+			}
 		})
 	}
 }

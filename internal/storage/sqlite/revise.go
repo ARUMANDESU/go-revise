@@ -4,6 +4,7 @@ import (
 	"context"
 	"database/sql"
 	"errors"
+	"fmt"
 
 	"github.com/ARUMANDESU/go-revise/internal/domain"
 	"github.com/ARUMANDESU/go-revise/internal/storage"
@@ -42,9 +43,46 @@ func (s Storage) GetRevise(ctx context.Context, id string) (domain.ReviseItem, e
 	return revise, nil
 }
 
-func (s Storage) ListRevises(ctx context.Context, userID string) ([]domain.ReviseItem, domain.PaginationMetadata, error) {
-	// TODO: Implement
-	panic("not implemented")
+func (s Storage) ListRevises(ctx context.Context, dto domain.ListReviseItemDTO) ([]domain.ReviseItem, domain.PaginationMetadata, error) {
+	const op = "storage.sqlite.revise.listRevises"
+
+	query := fmt.Sprintf(`
+		SELECT count(*) OVER(), id, user_id, name, description, tags, iteration, created_at, updated_at, last_rivised_at, next_revision_at
+		FROM revise_items
+		WHERE user_id = ?
+		ORDER BY %s %s
+		LIMIT ? OFFSET ?`,
+		dto.Sort.Field, dto.Sort.Order)
+
+	rows, err := s.DB.QueryContext(ctx, query, dto.UserID, dto.Pagination.Limit(), dto.Pagination.Offset())
+	if err != nil {
+		if errors.Is(err, sql.ErrNoRows) {
+			return nil, domain.PaginationMetadata{}, domain.WrapErrorWithOp(storage.ErrNotFound, op, "failed query to list revises")
+		}
+		return nil, domain.PaginationMetadata{}, domain.WrapErrorWithOp(err, op, "failed query to list revises")
+	}
+	defer rows.Close()
+
+	var (
+		total   int
+		revises []domain.ReviseItem
+	)
+	for rows.Next() {
+		var revise domain.ReviseItem
+		err := rows.Scan(
+			&total,
+			&revise.ID, &revise.UserID, &revise.Name, &revise.Description, &revise.Tags, &revise.Iteration,
+			&revise.CreatedAt, &revise.UpdatedAt, &revise.LastRevisedAt, &revise.NextRevisionAt,
+		)
+		if err != nil {
+			return nil, domain.PaginationMetadata{}, domain.WrapErrorWithOp(err, op, "failed to list revises")
+		}
+
+		revises = append(revises, revise)
+	}
+
+	return revises, domain.CalculatePaginationMetadata(total, dto.Pagination.Page, dto.Pagination.PageSize), nil
+
 }
 
 func (s Storage) CreateRevise(ctx context.Context, revise domain.ReviseItem) error {

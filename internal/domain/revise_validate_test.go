@@ -1,4 +1,4 @@
-package service
+package domain
 
 import (
 	"testing"
@@ -22,7 +22,7 @@ func TestValidateTags(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			err := validateTags(tt.value)
+			err := ValidateTags(tt.value)
 			if tt.wantErr {
 				assert.Error(t, err)
 			} else {
@@ -47,7 +47,7 @@ func TestValidateName(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			err := validateName(tt.value)
+			err := ValidateName(tt.value)
 			if tt.wantErr {
 				assert.Error(t, err)
 			} else {
@@ -71,7 +71,7 @@ func TestValidateDescription(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			err := validateDescription(tt.value)
+			err := ValidateDescription(tt.value)
 			if tt.wantErr {
 				assert.Error(t, err)
 			} else {

@@ -21,6 +21,7 @@ type Suite struct {
 	service            Revise
 	mockReviseProvider *mocks.ReviseProvider
 	mockReviseManager  *mocks.ReviseManager
+	mockUserProvider   *mocks.UserProvider
 }
 
 func NewSuite(t *testing.T) Suite {
@@ -28,11 +29,19 @@ func NewSuite(t *testing.T) Suite {
 
 	mockReviseProvider := mocks.NewReviseProvider(t)
 	mockReviseManager := mocks.NewReviseManager(t)
+	mockUserProvider := mocks.NewUserProvider(t)
 
 	return Suite{
-		service:            NewRevise(logger.Plug(), mockReviseProvider, mockReviseManager),
+		service: NewRevise(logger.Plug(),
+			ReviseStorages{
+				ReviseProvider: mockReviseProvider,
+				ReviseManager:  mockReviseManager,
+				UserProvider:   mockUserProvider,
+			},
+		),
 		mockReviseProvider: mockReviseProvider,
 		mockReviseManager:  mockReviseManager,
+		mockUserProvider:   mockUserProvider,
 	}
 }
 
@@ -96,9 +105,9 @@ func TestRevise_Create(t *testing.T) {
 			name: "success",
 			dto: domain.CreateReviseItemDTO{
 				UserID:      guuid.New().String(),
-				Name:        gofakeit.LetterN(ValidNameMinLength + 1),
-				Tags:        []string{gofakeit.LetterN(ValidTagsMinLength + 1)},
-				Description: gofakeit.Sentence(ValidDescriptionMinLength + 1),
+				Name:        gofakeit.LetterN(domain.ValidNameMinLength + 1),
+				Tags:        []string{gofakeit.LetterN(domain.ValidTagsMinLength + 1)},
+				Description: gofakeit.Sentence(domain.ValidDescriptionMinLength + 1),
 			},
 			mockErr: nil,
 			wantErr: nil,
@@ -107,7 +116,7 @@ func TestRevise_Create(t *testing.T) {
 			name: "success: empty tags and description",
 			dto: domain.CreateReviseItemDTO{
 				UserID: guuid.New().String(),
-				Name:   gofakeit.LetterN(ValidNameMinLength + 1),
+				Name:   gofakeit.LetterN(domain.ValidNameMinLength + 1),
 			},
 			mockErr: nil,
 			wantErr: nil,
@@ -125,7 +134,7 @@ func TestRevise_Create(t *testing.T) {
 			name: "error: internal error",
 			dto: domain.CreateReviseItemDTO{
 				UserID: guuid.New().String(),
-				Name:   gofakeit.LetterN(ValidNameMinLength + 1),
+				Name:   gofakeit.LetterN(domain.ValidNameMinLength + 1),
 			},
 			mockErr: errors.New("unexpected db error"),
 			wantErr: ErrInternal,
@@ -134,9 +143,9 @@ func TestRevise_Create(t *testing.T) {
 			name: "error: invalid arguments",
 			dto: domain.CreateReviseItemDTO{
 				UserID:      "",
-				Name:        gofakeit.LetterN(ValidNameMinLength - 1),
-				Tags:        []string{gofakeit.LetterN(ValidTagsMinLength - 1)},
-				Description: gofakeit.Sentence(ValidDescriptionMinLength - 1),
+				Name:        gofakeit.LetterN(domain.ValidNameMinLength - 1),
+				Tags:        []string{gofakeit.LetterN(domain.ValidTagsMinLength - 1)},
+				Description: gofakeit.Sentence(domain.ValidDescriptionMinLength - 1),
 			},
 			mockErr: nil,
 			wantErr: ErrInvalidArgument,
@@ -175,7 +184,7 @@ func TestRevise_Delete(t *testing.T) {
 		expectedItem := domain.ReviseItem{
 			ID:     uuid.FromStringOrNil(revisionID),
 			UserID: uuid.FromStringOrNil(userID),
-			Name:   gofakeit.LetterN(ValidNameMinLength + 1),
+			Name:   gofakeit.LetterN(domain.ValidNameMinLength + 1),
 		}
 
 		s.mockReviseProvider.On("GetRevise", mock.Anything, revisionID).Return(expectedItem, nil)
@@ -317,17 +326,17 @@ func TestRevise_Update_HappyPath(t *testing.T) {
 			dto: domain.UpdateReviseItemDTO{
 				ID:           revisionID.String(),
 				UserID:       uid.String(),
-				Name:         gofakeit.LetterN(ValidNameMinLength + 1),
-				Tags:         []string{gofakeit.LetterN(ValidTagsMinLength + 1)},
-				Description:  gofakeit.Sentence(ValidDescriptionMinLength + 1),
+				Name:         gofakeit.LetterN(domain.ValidNameMinLength + 1),
+				Tags:         []string{gofakeit.LetterN(domain.ValidTagsMinLength + 1)},
+				Description:  gofakeit.Sentence(domain.ValidDescriptionMinLength + 1),
 				UpdateFields: []string{"name", "description", "tags"},
 			},
 			initial: domain.ReviseItem{
 				ID:          revisionID,
 				UserID:      uid,
-				Name:        gofakeit.LetterN(ValidNameMinLength + 1),
-				Tags:        domain.StringArray{gofakeit.LetterN(ValidTagsMinLength + 1)},
-				Description: gofakeit.Sentence(ValidDescriptionMinLength + 1),
+				Name:        gofakeit.LetterN(domain.ValidNameMinLength + 1),
+				Tags:        domain.StringArray{gofakeit.LetterN(domain.ValidTagsMinLength + 1)},
+				Description: gofakeit.Sentence(domain.ValidDescriptionMinLength + 1),
 			},
 		},
 		{
@@ -335,13 +344,13 @@ func TestRevise_Update_HappyPath(t *testing.T) {
 			dto: domain.UpdateReviseItemDTO{
 				ID:           revisionID.String(),
 				UserID:       uid.String(),
-				Name:         gofakeit.LetterN(ValidNameMinLength + 1),
+				Name:         gofakeit.LetterN(domain.ValidNameMinLength + 1),
 				UpdateFields: []string{"name"},
 			},
 			initial: domain.ReviseItem{
 				ID:     revisionID,
 				UserID: uid,
-				Name:   gofakeit.LetterN(ValidNameMinLength + 1),
+				Name:   gofakeit.LetterN(domain.ValidNameMinLength + 1),
 			},
 		},
 		{
@@ -349,13 +358,13 @@ func TestRevise_Update_HappyPath(t *testing.T) {
 			dto: domain.UpdateReviseItemDTO{
 				ID:           revisionID.String(),
 				UserID:       uid.String(),
-				Description:  gofakeit.Sentence(ValidDescriptionMinLength + 1),
+				Description:  gofakeit.Sentence(domain.ValidDescriptionMinLength + 1),
 				UpdateFields: []string{"description"},
 			},
 			initial: domain.ReviseItem{
 				ID:          revisionID,
 				UserID:      uid,
-				Description: gofakeit.Sentence(ValidDescriptionMinLength + 1),
+				Description: gofakeit.Sentence(domain.ValidDescriptionMinLength + 1),
 			},
 		},
 		{
@@ -368,7 +377,7 @@ func TestRevise_Update_HappyPath(t *testing.T) {
 			initial: domain.ReviseItem{
 				ID:          revisionID,
 				UserID:      uid,
-				Description: gofakeit.Sentence(ValidDescriptionMinLength + 1),
+				Description: gofakeit.Sentence(domain.ValidDescriptionMinLength + 1),
 			},
 		},
 		{
@@ -376,13 +385,13 @@ func TestRevise_Update_HappyPath(t *testing.T) {
 			dto: domain.UpdateReviseItemDTO{
 				ID:           revisionID.String(),
 				UserID:       uid.String(),
-				Tags:         []string{gofakeit.LetterN(ValidTagsMinLength + 1)},
+				Tags:         []string{gofakeit.LetterN(domain.ValidTagsMinLength + 1)},
 				UpdateFields: []string{"tags"},
 			},
 			initial: domain.ReviseItem{
 				ID:     revisionID,
 				UserID: uid,
-				Tags:   domain.StringArray{gofakeit.LetterN(ValidTagsMinLength + 1)},
+				Tags:   domain.StringArray{gofakeit.LetterN(domain.ValidTagsMinLength + 1)},
 			},
 		},
 		{
@@ -395,7 +404,7 @@ func TestRevise_Update_HappyPath(t *testing.T) {
 			initial: domain.ReviseItem{
 				ID:     revisionID,
 				UserID: uid,
-				Tags:   domain.StringArray{gofakeit.LetterN(ValidTagsMinLength + 1)},
+				Tags:   domain.StringArray{gofakeit.LetterN(domain.ValidTagsMinLength + 1)},
 			},
 		},
 	}
@@ -447,7 +456,7 @@ func TestRevise_Update_FailPath(t *testing.T) {
 			dto: domain.UpdateReviseItemDTO{
 				ID:           "",
 				UserID:       uid.String(),
-				Name:         gofakeit.LetterN(ValidNameMinLength + 1),
+				Name:         gofakeit.LetterN(domain.ValidNameMinLength + 1),
 				UpdateFields: []string{"name"},
 			},
 			initial:     domain.ReviseItem{},
@@ -460,7 +469,7 @@ func TestRevise_Update_FailPath(t *testing.T) {
 			dto: domain.UpdateReviseItemDTO{
 				ID:           revisionID.String(),
 				UserID:       "",
-				Name:         gofakeit.LetterN(ValidNameMinLength + 1),
+				Name:         gofakeit.LetterN(domain.ValidNameMinLength + 1),
 				UpdateFields: []string{"name"},
 			},
 			initial:     domain.ReviseItem{},
@@ -473,7 +482,7 @@ func TestRevise_Update_FailPath(t *testing.T) {
 			dto: domain.UpdateReviseItemDTO{
 				ID:           revisionID.String(),
 				UserID:       uid.String(),
-				Name:         gofakeit.LetterN(ValidNameMinLength + 1),
+				Name:         gofakeit.LetterN(domain.ValidNameMinLength + 1),
 				UpdateFields: []string{"name"},
 			},
 			initial:     domain.ReviseItem{},
@@ -486,7 +495,7 @@ func TestRevise_Update_FailPath(t *testing.T) {
 			dto: domain.UpdateReviseItemDTO{
 				ID:           revisionID.String(),
 				UserID:       uid.String(),
-				Name:         gofakeit.LetterN(ValidNameMinLength + 1),
+				Name:         gofakeit.LetterN(domain.ValidNameMinLength + 1),
 				UpdateFields: []string{"name"},
 			},
 			initial: domain.ReviseItem{
@@ -502,7 +511,7 @@ func TestRevise_Update_FailPath(t *testing.T) {
 			dto: domain.UpdateReviseItemDTO{
 				ID:           revisionID.String(),
 				UserID:       uid.String(),
-				Name:         gofakeit.LetterN(ValidNameMinLength + 1),
+				Name:         gofakeit.LetterN(domain.ValidNameMinLength + 1),
 				UpdateFields: []string{"name"},
 			},
 			initial: domain.ReviseItem{
@@ -518,7 +527,7 @@ func TestRevise_Update_FailPath(t *testing.T) {
 			dto: domain.UpdateReviseItemDTO{
 				ID:           revisionID.String(),
 				UserID:       uid.String(),
-				Name:         gofakeit.LetterN(ValidNameMinLength + 1),
+				Name:         gofakeit.LetterN(domain.ValidNameMinLength + 1),
 				UpdateFields: []string{"name"},
 			},
 			initial:     domain.ReviseItem{},
@@ -531,13 +540,13 @@ func TestRevise_Update_FailPath(t *testing.T) {
 			dto: domain.UpdateReviseItemDTO{
 				ID:           revisionID.String(),
 				UserID:       uid.String(),
-				Name:         gofakeit.LetterN(ValidNameMinLength + 1),
+				Name:         gofakeit.LetterN(domain.ValidNameMinLength + 1),
 				UpdateFields: []string{"name"},
 			},
 			initial: domain.ReviseItem{
 				ID:     revisionID,
 				UserID: uid,
-				Name:   gofakeit.LetterN(ValidNameMinLength + 1),
+				Name:   gofakeit.LetterN(domain.ValidNameMinLength + 1),
 			},
 			onGetErr:    nil,
 			onUpdateErr: errors.New("unexpected db error"),
@@ -548,13 +557,13 @@ func TestRevise_Update_FailPath(t *testing.T) {
 			dto: domain.UpdateReviseItemDTO{
 				ID:           revisionID.String(),
 				UserID:       uid.String(),
-				Name:         gofakeit.LetterN(ValidNameMinLength - 1),
+				Name:         gofakeit.LetterN(domain.ValidNameMinLength - 1),
 				UpdateFields: []string{"name"},
 			},
 			initial: domain.ReviseItem{
 				ID:     revisionID,
 				UserID: uid,
-				Name:   gofakeit.LetterN(ValidNameMinLength + 1),
+				Name:   gofakeit.LetterN(domain.ValidNameMinLength + 1),
 			},
 			onGetErr:    nil,
 			onUpdateErr: nil,
@@ -565,13 +574,13 @@ func TestRevise_Update_FailPath(t *testing.T) {
 			dto: domain.UpdateReviseItemDTO{
 				ID:           revisionID.String(),
 				UserID:       uid.String(),
-				Name:         gofakeit.LetterN(ValidNameMinLength + 1),
+				Name:         gofakeit.LetterN(domain.ValidNameMinLength + 1),
 				UpdateFields: []string{"invalid"},
 			},
 			initial: domain.ReviseItem{
 				ID:     revisionID,
 				UserID: uid,
-				Name:   gofakeit.LetterN(ValidNameMinLength + 1),
+				Name:   gofakeit.LetterN(domain.ValidNameMinLength + 1),
 			},
 			onGetErr:    nil,
 			onUpdateErr: nil,
@@ -593,6 +602,179 @@ func TestRevise_Update_FailPath(t *testing.T) {
 			}
 
 			_, err := s.service.Update(context.Background(), tt.dto)
+
+			assert.ErrorIs(t, err, tt.wantErr)
+		})
+	}
+}
+
+func TestRevise_List_HappyPath(t *testing.T) {
+	uid, _ := uuid.NewV7()
+
+	tests := []struct {
+		name string
+		dto  domain.ListReviseItemDTO
+	}{
+		{
+			name: "success",
+			dto: domain.ListReviseItemDTO{
+				UserID: uid.String(),
+				Pagination: &domain.Pagination{
+					Page:     1,
+					PageSize: 10,
+				},
+				Sort: &domain.Sort{
+					Field: domain.SortFieldDefault,
+					Order: domain.SortOrderAsc,
+				},
+			},
+		},
+		{
+			name: "success: telegram user ID",
+			dto: domain.ListReviseItemDTO{
+				UserID: int64(123),
+				Pagination: &domain.Pagination{
+					Page:     1,
+					PageSize: 10,
+				},
+				Sort: &domain.Sort{
+					Field: domain.SortFieldDefault,
+					Order: domain.SortOrderAsc,
+				},
+			},
+		},
+		{
+			name: "success: no pagination",
+			dto: domain.ListReviseItemDTO{
+				UserID: uid.String(),
+				Sort: &domain.Sort{
+					Field: domain.SortFieldDefault,
+					Order: domain.SortOrderAsc,
+				},
+			},
+		},
+		{
+			name: "success: no sort",
+			dto: domain.ListReviseItemDTO{
+				UserID: uid.String(),
+				Pagination: &domain.Pagination{
+					Page:     1,
+					PageSize: 10,
+				},
+			},
+		},
+		{
+			name: "success: no pagination and sort",
+			dto: domain.ListReviseItemDTO{
+				UserID: uid.String(),
+			},
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			s := NewSuite(t)
+
+			if _, ok := tt.dto.UserID.(int64); ok {
+				s.mockUserProvider.On("GetUserByTelegramID", mock.Anything, tt.dto.UserID.(int64)).
+					Return(domain.User{ID: uid}, nil)
+				defer s.mockUserProvider.AssertExpectations(t)
+			}
+			s.mockReviseProvider.On("ListRevises", mock.Anything, mock.AnythingOfType("domain.ListReviseItemDTO")).
+				Return([]domain.ReviseItem{}, domain.PaginationMetadata{}, nil)
+			defer s.mockReviseProvider.AssertExpectations(t)
+
+			_, _, err := s.service.List(context.Background(), tt.dto)
+
+			require.NoError(t, err, "got %v", err)
+		})
+	}
+}
+
+func TestRevise_List_FailPath(t *testing.T) {
+	uid, _ := uuid.NewV7()
+
+	tests := []struct {
+		name      string
+		dto       domain.ListReviseItemDTO
+		onGetErr  error
+		onListErr error
+		wantErr   error
+	}{
+		{
+			name: "error: empty user ID",
+			dto: domain.ListReviseItemDTO{
+				UserID: "",
+			},
+			onGetErr:  nil,
+			onListErr: nil,
+			wantErr:   ErrInvalidArgument,
+		},
+		{
+			name: "error: invalid user ID",
+			dto: domain.ListReviseItemDTO{
+				UserID: "invalid",
+			},
+			onGetErr:  nil,
+			onListErr: nil,
+			wantErr:   ErrInvalidArgument,
+		},
+		{
+			name: "error: user not found",
+			dto: domain.ListReviseItemDTO{
+				UserID: int64(123),
+			},
+			onGetErr:  storage.ErrNotFound,
+			onListErr: nil,
+			wantErr:   ErrNotFound,
+		},
+		{
+			name: "error: revise not found",
+			dto: domain.ListReviseItemDTO{
+				UserID: uid.String(),
+			},
+			onGetErr:  nil,
+			onListErr: storage.ErrNotFound,
+			wantErr:   ErrNotFound,
+		},
+		{
+			name: "error: internal error",
+			dto: domain.ListReviseItemDTO{
+				UserID: int64(123),
+			},
+			onGetErr:  errors.New("unexpected db error"),
+			onListErr: nil,
+			wantErr:   ErrInternal,
+		},
+		{
+			name: "error: internal error",
+			dto: domain.ListReviseItemDTO{
+				UserID: uid.String(),
+			},
+			onGetErr:  nil,
+			onListErr: errors.New("unexpected db error"),
+			wantErr:   ErrInternal,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			s := NewSuite(t)
+
+			if !errors.Is(tt.wantErr, ErrInvalidArgument) {
+				if _, ok := tt.dto.UserID.(int64); ok {
+					s.mockUserProvider.On("GetUserByTelegramID", mock.Anything, mock.AnythingOfType("int64")).
+						Return(domain.User{}, tt.onGetErr)
+					defer s.mockUserProvider.AssertExpectations(t)
+				}
+				if tt.onGetErr == nil {
+					s.mockReviseProvider.On("ListRevises", mock.Anything, mock.AnythingOfType("domain.ListReviseItemDTO")).
+						Return([]domain.ReviseItem{}, domain.PaginationMetadata{}, tt.onListErr)
+					defer s.mockReviseProvider.AssertExpectations(t)
+				}
+			}
+
+			_, _, err := s.service.List(context.Background(), tt.dto)
 
 			assert.ErrorIs(t, err, tt.wantErr)
 		})
