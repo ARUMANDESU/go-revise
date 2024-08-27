@@ -4,6 +4,7 @@ import (
 	"database/sql/driver"
 	"testing"
 
+	"github.com/gofrs/uuid"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
@@ -78,6 +79,128 @@ func TestStringArray_Value(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			assert.Equal(t, tt.want, tt.a.Value())
+		})
+	}
+}
+
+func TestReviseItem_AbleToUpdate(t *testing.T) {
+	uid, _ := uuid.NewV7()
+	anotherUID, _ := uuid.NewV7()
+
+	tests := []struct {
+		name string
+		r    ReviseItem
+		id   string
+		want bool
+	}{
+		{
+			name: "able to update",
+			r:    ReviseItem{UserID: uid},
+			id:   uid.String(),
+			want: true,
+		},
+		{
+			name: "unable to update",
+			r:    ReviseItem{UserID: uid},
+			id:   anotherUID.String(),
+			want: false,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			assert.Equal(t, tt.want, tt.r.AbleToUpdate(tt.id))
+		})
+	}
+}
+
+func TestReviseItem_PartialUpdate(t *testing.T) {
+	revise := ReviseItem{
+		Name:        "old name",
+		Description: "old description",
+		Tags:        StringArray{"old tag1", "old tag2"},
+	}
+
+	tests := []struct {
+		name string
+		dto  UpdateReviseItemDTO
+		want ReviseItem
+	}{
+		{
+			name: "update name",
+			dto: UpdateReviseItemDTO{
+				Name:         " new name ",
+				Description:  "old description ",
+				Tags:         StringArray{"old tag1", "old tag2"},
+				UpdateFields: []string{"name"},
+			},
+			want: ReviseItem{
+				Name:        "new name",
+				Description: "old description",
+				Tags:        StringArray{"old tag1", "old tag2"},
+			},
+		},
+		{
+			name: "update description",
+			dto: UpdateReviseItemDTO{
+				Name:         "old name",
+				Description:  "new description",
+				Tags:         StringArray{"old tag1", "old tag2"},
+				UpdateFields: []string{"description"},
+			},
+			want: ReviseItem{
+				Name:        "old name",
+				Description: "new description",
+				Tags:        StringArray{"old tag1", "old tag2"},
+			},
+		},
+		{
+			name: "update tags",
+			dto: UpdateReviseItemDTO{
+				Name:         "old name",
+				Description:  "old description",
+				Tags:         StringArray{"new tag1", "new tag2"},
+				UpdateFields: []string{"tags"},
+			},
+			want: ReviseItem{
+				Name:        "old name",
+				Description: "old description",
+				Tags:        StringArray{"new tag1", "new tag2"},
+			},
+		},
+		{
+			name: "update all",
+			dto: UpdateReviseItemDTO{
+				Name:         "new name",
+				Description:  "new description",
+				Tags:         StringArray{"new tag1", "new tag2"},
+				UpdateFields: []string{"name", "description", "tags"},
+			},
+			want: ReviseItem{
+				Name:        "new name",
+				Description: "new description",
+				Tags:        StringArray{"new tag1", "new tag2"},
+			},
+		},
+		{
+			name: "no update",
+			dto: UpdateReviseItemDTO{
+				Name:         "old name",
+				Description:  "old description",
+				Tags:         StringArray{"old tag1", "old tag2"},
+				UpdateFields: []string{},
+			},
+			want: ReviseItem{
+				Name:        "old name",
+				Description: "old description",
+				Tags:        StringArray{"old tag1", "old tag2"},
+			},
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			assert.Equal(t, tt.want, revise.PartialUpdate(tt.dto))
 		})
 	}
 }

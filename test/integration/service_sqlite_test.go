@@ -255,7 +255,7 @@ func TestService_Revise_Delete(t *testing.T) {
 
 			require.NoError(t, err)
 
-			assert.Empty(t, reviseItem)
+			assert.NotEmpty(t, reviseItem)
 
 			_, err = s.Service.Get(ctx, tt.id)
 

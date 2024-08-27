@@ -110,9 +110,51 @@ func (r *Revise) Create(ctx context.Context, dto domain.CreateReviseItemDTO) (do
 	return reviseItem, nil
 }
 
-func (r *Revise) Update(ctx context.Context, revise domain.ReviseItem) (domain.ReviseItem, error) {
+func (r *Revise) Update(ctx context.Context, dto domain.UpdateReviseItemDTO) (domain.ReviseItem, error) {
 	const op = "service.revise.update"
-	panic("not implemented") // TODO: Implement
+
+	reviseItemUpdateFields := []any{"name", "description", "tags"}
+
+	err := validation.ValidateStruct(&dto,
+		validation.Field(&dto.ID, validation.Required, is.UUID),
+		validation.Field(&dto.UserID, validation.Required, is.UUID),
+		validation.Field(&dto.Name, validation.By(validateName)),
+		validation.Field(&dto.Tags, validation.By(validateTags)),
+		validation.Field(&dto.Description, validation.By(validateDescription)),
+		validation.Field(&dto.UpdateFields, validation.Required, validation.Each(validation.In(reviseItemUpdateFields...))),
+	)
+	if err != nil {
+		return domain.ReviseItem{}, fmt.Errorf("%w: %w", ErrInvalidArgument, err)
+	}
+
+	reviseItem, err := r.reviseProvider.GetRevise(ctx, dto.ID)
+	if err != nil {
+		switch {
+		case errors.Is(err, storage.ErrNotFound):
+			return domain.ReviseItem{}, ErrNotFound
+		default:
+			r.log.Error(domain.WrapErrorWithOp(err, op, "failed to get revise").Error())
+			return domain.ReviseItem{}, ErrInternal
+		}
+	}
+
+	if !reviseItem.AbleToUpdate(dto.UserID) {
+		return domain.ReviseItem{}, ErrUnauthorized
+	}
+
+	reviseItem = reviseItem.PartialUpdate(dto)
+
+	if err := r.reviseManager.UpdateRevise(ctx, reviseItem); err != nil {
+		switch {
+		case errors.Is(err, storage.ErrNotFound):
+			return domain.ReviseItem{}, ErrNotFound
+		default:
+			r.log.Error(domain.WrapErrorWithOp(err, op, "failed to update revise").Error())
+			return domain.ReviseItem{}, ErrInternal
+		}
+	}
+
+	return reviseItem, nil
 }
 
 func (r *Revise) Delete(ctx context.Context, id string, userID string) (domain.ReviseItem, error) {
@@ -138,7 +180,7 @@ func (r *Revise) Delete(ctx context.Context, id string, userID string) (domain.R
 		}
 	}
 
-	if reviseItem.UserID.String() != userID {
+	if !reviseItem.AbleToUpdate(userID) {
 		return domain.ReviseItem{}, ErrUnauthorized
 	}
 

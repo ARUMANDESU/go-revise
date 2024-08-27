@@ -76,7 +76,31 @@ func (s Storage) CreateRevise(ctx context.Context, revise domain.ReviseItem) err
 }
 
 func (s Storage) UpdateRevise(ctx context.Context, revise domain.ReviseItem) error {
-	panic("not implemented") // TODO: Implement
+	const op = "storage.sqlite.revise.updateRevise"
+
+	query := `UPDATE revise_items
+		SET name = ?, description = ?, tags = ?, iteration = ?, updated_at = ?, last_rivised_at = ?, next_revision_at = ?
+		WHERE id = ?`
+
+	args := []interface{}{
+		revise.Name, revise.Description, revise.Tags.Value(), revise.Iteration,
+		revise.UpdatedAt, revise.LastRevisedAt, revise.NextRevisionAt, revise.ID,
+	}
+
+	result, err := s.DB.ExecContext(ctx, query, args...)
+	if err != nil {
+		return domain.WrapErrorWithOp(err, op, "failed to update revise")
+	}
+
+	rowsAffected, err := result.RowsAffected()
+	if err != nil {
+		return domain.WrapErrorWithOp(err, op, "failed to get rows affected")
+	}
+	if rowsAffected == 0 {
+		return domain.WrapErrorWithOp(storage.ErrNotFound, op, "failed to update revise")
+	}
+
+	return nil
 }
 
 func (s Storage) DeleteRevise(ctx context.Context, id string) error {

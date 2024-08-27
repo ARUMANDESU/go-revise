@@ -11,16 +11,52 @@ import (
 
 // ReviseItem is represents revision entity
 type ReviseItem struct {
-	ID             uuid.UUID
-	UserID         uuid.UUID
-	Name           string
-	Description    string
-	Tags           StringArray
+	// I think optemistic locking is not needed here
+	// because we are not updating the same record concurrently
+	// so I am not adding version field here
+
+	// Immutable fields
+	ID     uuid.UUID
+	UserID uuid.UUID
+
+	// Updatable fields
+	Name        string
+	Description string
+	Tags        StringArray
+
+	// Revision specific fields
 	Iteration      ReviseIteration
-	CreatedAt      time.Time
-	UpdatedAt      time.Time
 	LastRevisedAt  time.Time
 	NextRevisionAt time.Time
+
+	// Timestamps
+	CreatedAt time.Time
+	UpdatedAt time.Time
+}
+
+// AbleToUpdate checks if the user is able to update the revise item
+func (r ReviseItem) AbleToUpdate(id string) bool {
+	return r.UserID.String() == id
+}
+
+// PartialUpdate updates only the fields that are specified in the dto.UpdateFields
+// and returns the updated ReviseItem
+//   - dto.Name is trimmed before updating
+//   - dto.Description is trimmed before updating
+//   - dto.Tags is not trimmed here, because it is handled in the StringArray.Value method, before saving to the database
+func (r ReviseItem) PartialUpdate(dto UpdateReviseItemDTO) ReviseItem {
+	for _, field := range dto.UpdateFields {
+		switch field {
+		case "name":
+			r.Name = strings.TrimSpace(dto.Name)
+		case "description":
+			r.Description = strings.TrimSpace(dto.Description)
+		case "tags":
+			r.Tags = dto.Tags // no need to trim spaces here, because it is handled in the StringArray.Value method
+		}
+	}
+
+	return r
 }
 
 // StringArray is a custom type to handle string array in the database,
@@ -47,8 +83,19 @@ func (a *StringArray) Scan(value interface{}) error {
 	return nil
 }
 
+// Value converts the string array into a string
+// so that it can be saved in the database
+//   - trims spaces before converting to string
+//
+// Use this method before saving to the database
 func (a StringArray) Value() driver.Value {
 	// transform the array into a string: ["a","b","c"] -> "a,b,c"
+
+	// trim spaces before converting to string
+	for i, tag := range a {
+		a[i] = strings.TrimSpace(tag)
+	}
+
 	stringValue := strings.Join(a, ",")
 	if len(stringValue) == 0 {
 		return nil

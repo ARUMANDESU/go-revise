@@ -302,3 +302,299 @@ func TestRevise_Delete_FailPath(t *testing.T) {
 	}
 
 }
+
+func TestRevise_Update_HappyPath(t *testing.T) {
+	uid, _ := uuid.NewV7()
+	revisionID, _ := uuid.NewV7()
+
+	tests := []struct {
+		name    string
+		dto     domain.UpdateReviseItemDTO
+		initial domain.ReviseItem
+	}{
+		{
+			name: "success",
+			dto: domain.UpdateReviseItemDTO{
+				ID:           revisionID.String(),
+				UserID:       uid.String(),
+				Name:         gofakeit.LetterN(ValidNameMinLength + 1),
+				Tags:         []string{gofakeit.LetterN(ValidTagsMinLength + 1)},
+				Description:  gofakeit.Sentence(ValidDescriptionMinLength + 1),
+				UpdateFields: []string{"name", "description", "tags"},
+			},
+			initial: domain.ReviseItem{
+				ID:          revisionID,
+				UserID:      uid,
+				Name:        gofakeit.LetterN(ValidNameMinLength + 1),
+				Tags:        domain.StringArray{gofakeit.LetterN(ValidTagsMinLength + 1)},
+				Description: gofakeit.Sentence(ValidDescriptionMinLength + 1),
+			},
+		},
+		{
+			name: "success: update name",
+			dto: domain.UpdateReviseItemDTO{
+				ID:           revisionID.String(),
+				UserID:       uid.String(),
+				Name:         gofakeit.LetterN(ValidNameMinLength + 1),
+				UpdateFields: []string{"name"},
+			},
+			initial: domain.ReviseItem{
+				ID:     revisionID,
+				UserID: uid,
+				Name:   gofakeit.LetterN(ValidNameMinLength + 1),
+			},
+		},
+		{
+			name: "success: update description",
+			dto: domain.UpdateReviseItemDTO{
+				ID:           revisionID.String(),
+				UserID:       uid.String(),
+				Description:  gofakeit.Sentence(ValidDescriptionMinLength + 1),
+				UpdateFields: []string{"description"},
+			},
+			initial: domain.ReviseItem{
+				ID:          revisionID,
+				UserID:      uid,
+				Description: gofakeit.Sentence(ValidDescriptionMinLength + 1),
+			},
+		},
+		{
+			name: "success: update set description to empty",
+			dto: domain.UpdateReviseItemDTO{
+				ID:           revisionID.String(),
+				UserID:       uid.String(),
+				UpdateFields: []string{"description"},
+			},
+			initial: domain.ReviseItem{
+				ID:          revisionID,
+				UserID:      uid,
+				Description: gofakeit.Sentence(ValidDescriptionMinLength + 1),
+			},
+		},
+		{
+			name: "success: update tags",
+			dto: domain.UpdateReviseItemDTO{
+				ID:           revisionID.String(),
+				UserID:       uid.String(),
+				Tags:         []string{gofakeit.LetterN(ValidTagsMinLength + 1)},
+				UpdateFields: []string{"tags"},
+			},
+			initial: domain.ReviseItem{
+				ID:     revisionID,
+				UserID: uid,
+				Tags:   domain.StringArray{gofakeit.LetterN(ValidTagsMinLength + 1)},
+			},
+		},
+		{
+			name: "success: update set tags to empty",
+			dto: domain.UpdateReviseItemDTO{
+				ID:           revisionID.String(),
+				UserID:       uid.String(),
+				UpdateFields: []string{"tags"},
+			},
+			initial: domain.ReviseItem{
+				ID:     revisionID,
+				UserID: uid,
+				Tags:   domain.StringArray{gofakeit.LetterN(ValidTagsMinLength + 1)},
+			},
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			s := NewSuite(t)
+
+			s.mockReviseProvider.On("GetRevise", mock.Anything, tt.dto.ID).Return(tt.initial, nil)
+			defer s.mockReviseProvider.AssertExpectations(t)
+
+			s.mockReviseManager.On("UpdateRevise", mock.Anything, mock.AnythingOfType("domain.ReviseItem")).Return(nil)
+			defer s.mockReviseManager.AssertExpectations(t)
+
+			reviseItem, err := s.service.Update(context.Background(), tt.dto)
+
+			require.NoError(t, err)
+
+			assert.Equal(t, tt.dto.ID, reviseItem.ID.String())
+			assert.Equal(t, tt.dto.UserID, reviseItem.UserID.String())
+			for _, field := range tt.dto.UpdateFields {
+				switch field {
+				case "name":
+					assert.Equal(t, tt.dto.Name, reviseItem.Name)
+				case "tags":
+					assert.Equal(t, domain.StringArray(tt.dto.Tags), reviseItem.Tags)
+				case "description":
+					assert.Equal(t, tt.dto.Description, reviseItem.Description)
+				}
+			}
+		})
+	}
+}
+
+func TestRevise_Update_FailPath(t *testing.T) {
+	uid, _ := uuid.NewV7()
+	revisionID, _ := uuid.NewV7()
+
+	tests := []struct {
+		name        string
+		dto         domain.UpdateReviseItemDTO
+		initial     domain.ReviseItem
+		onGetErr    error
+		onUpdateErr error
+		wantErr     error
+	}{
+		{
+			name: "error: empty ID",
+			dto: domain.UpdateReviseItemDTO{
+				ID:           "",
+				UserID:       uid.String(),
+				Name:         gofakeit.LetterN(ValidNameMinLength + 1),
+				UpdateFields: []string{"name"},
+			},
+			initial:     domain.ReviseItem{},
+			onGetErr:    nil,
+			onUpdateErr: nil,
+			wantErr:     ErrInvalidArgument,
+		},
+		{
+			name: "error: empty user ID",
+			dto: domain.UpdateReviseItemDTO{
+				ID:           revisionID.String(),
+				UserID:       "",
+				Name:         gofakeit.LetterN(ValidNameMinLength + 1),
+				UpdateFields: []string{"name"},
+			},
+			initial:     domain.ReviseItem{},
+			onGetErr:    nil,
+			onUpdateErr: nil,
+			wantErr:     ErrInvalidArgument,
+		},
+		{
+			name: "error: revise not found",
+			dto: domain.UpdateReviseItemDTO{
+				ID:           revisionID.String(),
+				UserID:       uid.String(),
+				Name:         gofakeit.LetterN(ValidNameMinLength + 1),
+				UpdateFields: []string{"name"},
+			},
+			initial:     domain.ReviseItem{},
+			onGetErr:    storage.ErrNotFound,
+			onUpdateErr: nil,
+			wantErr:     ErrNotFound,
+		},
+		{
+			name: "error: not found on update",
+			dto: domain.UpdateReviseItemDTO{
+				ID:           revisionID.String(),
+				UserID:       uid.String(),
+				Name:         gofakeit.LetterN(ValidNameMinLength + 1),
+				UpdateFields: []string{"name"},
+			},
+			initial: domain.ReviseItem{
+				ID:     revisionID,
+				UserID: uid,
+			},
+			onGetErr:    nil,
+			onUpdateErr: storage.ErrNotFound,
+			wantErr:     ErrNotFound,
+		},
+		{
+			name: "error: unauthorized",
+			dto: domain.UpdateReviseItemDTO{
+				ID:           revisionID.String(),
+				UserID:       uid.String(),
+				Name:         gofakeit.LetterN(ValidNameMinLength + 1),
+				UpdateFields: []string{"name"},
+			},
+			initial: domain.ReviseItem{
+				ID:     revisionID,
+				UserID: uuid.FromStringOrNil(guuid.New().String()), // different user ID
+			},
+			onGetErr:    nil,
+			wantErr:     ErrUnauthorized,
+			onUpdateErr: nil,
+		},
+		{
+			name: "error: internal error",
+			dto: domain.UpdateReviseItemDTO{
+				ID:           revisionID.String(),
+				UserID:       uid.String(),
+				Name:         gofakeit.LetterN(ValidNameMinLength + 1),
+				UpdateFields: []string{"name"},
+			},
+			initial:     domain.ReviseItem{},
+			onGetErr:    errors.New("unexpected db error"),
+			onUpdateErr: nil,
+			wantErr:     ErrInternal,
+		},
+		{
+			name: "error: internal error",
+			dto: domain.UpdateReviseItemDTO{
+				ID:           revisionID.String(),
+				UserID:       uid.String(),
+				Name:         gofakeit.LetterN(ValidNameMinLength + 1),
+				UpdateFields: []string{"name"},
+			},
+			initial: domain.ReviseItem{
+				ID:     revisionID,
+				UserID: uid,
+				Name:   gofakeit.LetterN(ValidNameMinLength + 1),
+			},
+			onGetErr:    nil,
+			onUpdateErr: errors.New("unexpected db error"),
+			wantErr:     ErrInternal,
+		},
+		{
+			name: "error: invalid arguments",
+			dto: domain.UpdateReviseItemDTO{
+				ID:           revisionID.String(),
+				UserID:       uid.String(),
+				Name:         gofakeit.LetterN(ValidNameMinLength - 1),
+				UpdateFields: []string{"name"},
+			},
+			initial: domain.ReviseItem{
+				ID:     revisionID,
+				UserID: uid,
+				Name:   gofakeit.LetterN(ValidNameMinLength + 1),
+			},
+			onGetErr:    nil,
+			onUpdateErr: nil,
+			wantErr:     ErrInvalidArgument,
+		},
+		{
+			name: "error: invalid update fields",
+			dto: domain.UpdateReviseItemDTO{
+				ID:           revisionID.String(),
+				UserID:       uid.String(),
+				Name:         gofakeit.LetterN(ValidNameMinLength + 1),
+				UpdateFields: []string{"invalid"},
+			},
+			initial: domain.ReviseItem{
+				ID:     revisionID,
+				UserID: uid,
+				Name:   gofakeit.LetterN(ValidNameMinLength + 1),
+			},
+			onGetErr:    nil,
+			onUpdateErr: nil,
+			wantErr:     ErrInvalidArgument,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			s := NewSuite(t)
+
+			if !errors.Is(tt.wantErr, ErrInvalidArgument) {
+				s.mockReviseProvider.On("GetRevise", mock.Anything, tt.dto.ID).Return(tt.initial, tt.onGetErr)
+				defer s.mockReviseProvider.AssertExpectations(t)
+				if tt.onGetErr == nil && !errors.Is(tt.wantErr, ErrUnauthorized) {
+					s.mockReviseManager.On("UpdateRevise", mock.Anything, mock.AnythingOfType("domain.ReviseItem")).Return(tt.onUpdateErr)
+					defer s.mockReviseManager.AssertExpectations(t)
+				}
+			}
+
+			_, err := s.service.Update(context.Background(), tt.dto)
+
+			assert.ErrorIs(t, err, tt.wantErr)
+		})
+	}
+}
