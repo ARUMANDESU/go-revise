@@ -56,6 +56,11 @@ func (r ReviseItem) PartialUpdate(dto UpdateReviseItemDTO) ReviseItem {
 		}
 	}
 
+	// update the updated at timestamp if any of the fields are updated
+	if dto.UpdateFields != nil || len(dto.UpdateFields) > 0 {
+		r.UpdatedAt = time.Now()
+	}
+
 	return r
 }
 

@@ -2,6 +2,7 @@ package integration
 
 import (
 	"context"
+	"strings"
 	"testing"
 
 	"github.com/ARUMANDESU/go-revise/internal/domain"
@@ -332,6 +333,268 @@ func TestService_Revise_Delete_FailPath(t *testing.T) {
 				require.NoError(t, err)
 				assert.NotEmpty(t, item)
 			}
+		})
+	}
+}
+
+func TestService_Revise_Update_HappyPath(t *testing.T) {
+	ctx := context.Background()
+	s, cleanup := NewSuite(t)
+	defer cleanup()
+
+	tests := []struct {
+		name         string
+		id           string
+		userID       string
+		dto          domain.UpdateReviseItemDTO
+		expectedItem domain.ReviseItem
+	}{
+		{
+			name:   "all fields filled",
+			id:     "3e8b7e6e-8f6d-4b8e-9b8e-8f6d4b8e9b8e",
+			userID: "1e8b7e6e-8f6d-4b8e-9b8e-8f6d4b8e9b8e",
+			dto: domain.UpdateReviseItemDTO{
+				ID:           "3e8b7e6e-8f6d-4b8e-9b8e-8f6d4b8e9b8e",
+				UserID:       "1e8b7e6e-8f6d-4b8e-9b8e-8f6d4b8e9b8e",
+				Name:         gofakeit.BookTitle() + " ",                                     // " " for trimming test
+				Description:  gofakeit.Sentence(10) + " ",                                    // " " for trimming test
+				Tags:         []string{gofakeit.HipsterWord(), gofakeit.HipsterWord() + " "}, // " " for trimming test
+				UpdateFields: []string{"name", "description", "tags"},
+			},
+		},
+		{
+			name: "name only",
+			id:   "3e8b7e6e-8f6d-4b8e-9b8e-8f6d4b8e9b8e",
+			dto: domain.UpdateReviseItemDTO{
+				ID:           "3e8b7e6e-8f6d-4b8e-9b8e-8f6d4b8e9b8e",
+				UserID:       "1e8b7e6e-8f6d-4b8e-9b8e-8f6d4b8e9b8e",
+				Name:         gofakeit.BookTitle(),
+				UpdateFields: []string{"name"},
+			},
+		},
+		{
+			name: "description only",
+			id:   "3e8b7e6e-8f6d-4b8e-9b8e-8f6d4b8e9b8e",
+			dto: domain.UpdateReviseItemDTO{
+				ID:           "3e8b7e6e-8f6d-4b8e-9b8e-8f6d4b8e9b8e",
+				UserID:       "1e8b7e6e-8f6d-4b8e-9b8e-8f6d4b8e9b8e",
+				Description:  gofakeit.Sentence(10),
+				UpdateFields: []string{"description"},
+			},
+		},
+		{
+			name: "tags only",
+			id:   "3e8b7e6e-8f6d-4b8e-9b8e-8f6d4b8e9b8e",
+			dto: domain.UpdateReviseItemDTO{
+				ID:           "3e8b7e6e-8f6d-4b8e-9b8e-8f6d4b8e9b8e",
+				UserID:       "1e8b7e6e-8f6d-4b8e-9b8e-8f6d4b8e9b8e",
+				Tags:         []string{gofakeit.HipsterWord(), gofakeit.HipsterWord()},
+				UpdateFields: []string{"tags"},
+			},
+		},
+		{
+			name:   "description and tags",
+			id:     "3e8b7e6e-8f6d-4b8e-9b8e-8f6d4b8e9b8e",
+			userID: "1e8b7e6e-8f6d-4b8e-9b8e-8f6d4b8e9b8e",
+			dto: domain.UpdateReviseItemDTO{
+				ID:           "3e8b7e6e-8f6d-4b8e-9b8e-8f6d4b8e9b8e",
+				UserID:       "1e8b7e6e-8f6d-4b8e-9b8e-8f6d4b8e9b8e",
+				Description:  gofakeit.Sentence(10),
+				Tags:         []string{gofakeit.HipsterWord(), gofakeit.HipsterWord()},
+				UpdateFields: []string{"description", "tags"},
+			},
+		},
+		{
+			name:   "name and description",
+			id:     "3e8b7e6e-8f6d-4b8e-9b8e-8f6d4b8e9b8e",
+			userID: "1e8b7e6e-8f6d-4b8e-9b8e-8f6d4b8e9b8e",
+			dto: domain.UpdateReviseItemDTO{
+				ID:           "3e8b7e6e-8f6d-4b8e-9b8e-8f6d4b8e9b8e",
+				UserID:       "1e8b7e6e-8f6d-4b8e-9b8e-8f6d4b8e9b8e",
+				Name:         gofakeit.BookTitle(),
+				Description:  gofakeit.Sentence(10),
+				UpdateFields: []string{"name", "description"},
+			},
+		},
+		{
+			name:   "name and tags",
+			id:     "3e8b7e6e-8f6d-4b8e-9b8e-8f6d4b8e9b8e",
+			userID: "1e8b7e6e-8f6d-4b8e-9b8e-8f6d4b8e9b8e",
+			dto: domain.UpdateReviseItemDTO{
+				ID:           "3e8b7e6e-8f6d-4b8e-9b8e-8f6d4b8e9b8e",
+				UserID:       "1e8b7e6e-8f6d-4b8e-9b8e-8f6d4b8e9b8e",
+				Name:         gofakeit.BookTitle(),
+				Tags:         []string{gofakeit.HipsterWord(), gofakeit.HipsterWord()},
+				UpdateFields: []string{"name", "tags"},
+			},
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			initialItem, err := s.Service.Get(ctx, tt.id)
+			require.NoError(t, err)
+
+			item, err := s.Service.Update(ctx, tt.dto)
+
+			s.LogHandler.AssertEmpty()
+
+			require.NoError(t, err)
+
+			trimmedTags := make([]string, 0, len(tt.dto.Tags))
+			for _, tag := range tt.dto.Tags {
+				trimmedTags = append(trimmedTags, strings.TrimSpace(tag))
+			}
+
+			assert.NotEmpty(t, item.ID)
+			assert.NotEqual(t, initialItem.UpdatedAt, item.UpdatedAt)
+			for _, field := range tt.dto.UpdateFields {
+				switch field {
+				case "name":
+					assert.Equal(t, strings.TrimSpace(tt.dto.Name), item.Name)
+				case "description":
+					assert.Equal(t, strings.TrimSpace(tt.dto.Description), item.Description)
+				case "tags":
+					assert.Equal(t, trimmedTags, []string(item.Tags))
+				}
+			}
+
+			getItem, err := s.Service.Get(ctx, item.ID.String())
+
+			require.NoError(t, err)
+
+			assert.Equal(t, item.ID.String(), getItem.ID.String())
+			assert.Equal(t, item.UserID.String(), getItem.UserID.String())
+
+			for _, field := range tt.dto.UpdateFields {
+				switch field {
+				case "name":
+					assert.Equal(t, item.Name, getItem.Name)
+				case "description":
+					assert.Equal(t, item.Description, getItem.Description)
+				case "tags":
+					assert.Equal(t, item.Tags, getItem.Tags)
+				}
+			}
+
+			if tt.dto.UpdateFields != nil || len(tt.dto.UpdateFields) > 0 {
+				assert.NotEqual(t, item.UpdatedAt, getItem.UpdatedAt)
+			} else {
+				assert.Equal(t, item.UpdatedAt, getItem.UpdatedAt)
+			}
+
+			assert.Equal(t, item.Iteration, getItem.Iteration)
+			assert.Equal(t, item.CreatedAt, getItem.CreatedAt)
+			assert.Equal(t, item.LastRevisedAt, getItem.LastRevisedAt)
+			assert.Equal(t, item.NextRevisionAt, getItem.NextRevisionAt)
+		})
+	}
+}
+
+func TestService_Revise_Update_FailPaht(t *testing.T) {
+	ctx := context.Background()
+	s, cleanup := NewSuite(t)
+	defer cleanup()
+
+	tests := []struct {
+		name          string
+		dto           domain.UpdateReviseItemDTO
+		expectedError error
+	}{
+		{
+			name:          "empty id",
+			dto:           domain.UpdateReviseItemDTO{},
+			expectedError: service.ErrInvalidArgument,
+		},
+		{
+			name:          "invalid id",
+			dto:           domain.UpdateReviseItemDTO{ID: "invalid"},
+			expectedError: service.ErrInvalidArgument,
+		},
+		{
+			name:          "empty user id",
+			dto:           domain.UpdateReviseItemDTO{ID: gofakeit.UUID()},
+			expectedError: service.ErrInvalidArgument,
+		},
+		{
+			name:          "invalid user id",
+			dto:           domain.UpdateReviseItemDTO{ID: gofakeit.UUID(), UserID: "invalid"},
+			expectedError: service.ErrInvalidArgument,
+		},
+		{
+			name:          "empty name",
+			dto:           domain.UpdateReviseItemDTO{ID: gofakeit.UUID(), UserID: gofakeit.UUID()},
+			expectedError: service.ErrInvalidArgument,
+		},
+		{
+			name: "empty description",
+			dto: domain.UpdateReviseItemDTO{
+				ID:     gofakeit.UUID(),
+				UserID: gofakeit.UUID(),
+				Name:   gofakeit.BookTitle(),
+			},
+			expectedError: service.ErrInvalidArgument,
+		},
+		{
+			name: "invalid tags",
+			dto: domain.UpdateReviseItemDTO{
+				ID:     gofakeit.UUID(),
+				UserID: gofakeit.UUID(),
+				Name:   gofakeit.BookTitle(),
+				Tags:   []string{"tag1", ""},
+			},
+			expectedError: service.ErrInvalidArgument,
+		},
+		{
+			name: "invalid description length",
+			dto: domain.UpdateReviseItemDTO{
+				ID:          gofakeit.UUID(),
+				UserID:      gofakeit.UUID(),
+				Name:        gofakeit.BookTitle(),
+				Description: "1",
+			},
+			expectedError: service.ErrInvalidArgument,
+		},
+		{
+			name: "invalid update fields",
+			dto: domain.UpdateReviseItemDTO{
+				ID:           gofakeit.UUID(),
+				UserID:       gofakeit.UUID(),
+				Name:         gofakeit.BookTitle(),
+				Description:  gofakeit.Sentence(10),
+				UpdateFields: []string{"invalid"},
+			},
+			expectedError: service.ErrInvalidArgument,
+		},
+		{
+			name: "empty update fields",
+			dto: domain.UpdateReviseItemDTO{
+				ID:           gofakeit.UUID(),
+				UserID:       gofakeit.UUID(),
+				Name:         gofakeit.BookTitle(),
+				Description:  gofakeit.Sentence(10),
+				UpdateFields: []string{},
+			},
+			expectedError: service.ErrInvalidArgument,
+		},
+		{
+			name: "non-existing item",
+			dto: domain.UpdateReviseItemDTO{
+				ID:           gofakeit.UUID(),
+				UserID:       gofakeit.UUID(),
+				Name:         gofakeit.BookTitle(),
+				Description:  gofakeit.Sentence(10),
+				UpdateFields: []string{"name", "description"},
+			},
+			expectedError: service.ErrNotFound,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			_, err := s.Service.Update(ctx, tt.dto)
+
+			assert.ErrorIs(t, err, tt.expectedError)
 		})
 	}
 }

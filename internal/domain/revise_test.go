@@ -200,7 +200,24 @@ func TestReviseItem_PartialUpdate(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			assert.Equal(t, tt.want, revise.PartialUpdate(tt.dto))
+			updated := revise.PartialUpdate(tt.dto)
+
+			for _, field := range tt.dto.UpdateFields {
+				switch field {
+				case "name":
+					assert.Equal(t, tt.want.Name, updated.Name, "name field")
+				case "description":
+					assert.Equal(t, tt.want.Description, updated.Description, "description field")
+				case "tags":
+					assert.Equal(t, tt.want.Tags, updated.Tags, "tags field")
+				}
+			}
+
+			if tt.dto.UpdateFields != nil || len(tt.dto.UpdateFields) > 0 {
+				assert.NotEqual(t, revise.UpdatedAt, updated.UpdatedAt)
+			} else {
+				assert.Equal(t, revise.UpdatedAt, updated.UpdatedAt)
+			}
 		})
 	}
 }
