@@ -180,7 +180,7 @@ func TestRevise_Delete(t *testing.T) {
 
 		s.mockReviseProvider.On("GetRevise", mock.Anything, revisionID).Return(expectedItem, nil)
 		defer s.mockReviseProvider.AssertExpectations(t)
-		s.mockReviseManager.On("DeleteRevise", mock.Anything, revisionID).Return(expectedItem, nil)
+		s.mockReviseManager.On("DeleteRevise", mock.Anything, revisionID).Return(nil)
 		defer s.mockReviseManager.AssertExpectations(t)
 
 		gotItem, err := s.service.Delete(context.Background(), revisionID, userID)
@@ -290,7 +290,7 @@ func TestRevise_Delete_FailPath(t *testing.T) {
 				s.mockReviseProvider.On("GetRevise", mock.Anything, tt.revisionID).Return(tt.reviseItem, tt.onGetErr)
 				defer s.mockReviseProvider.AssertExpectations(t)
 				if tt.onGetErr == nil && !errors.Is(tt.wantErr, ErrUnauthorized) {
-					s.mockReviseManager.On("DeleteRevise", mock.Anything, tt.revisionID).Return(tt.reviseItem, tt.onDeleteErr)
+					s.mockReviseManager.On("DeleteRevise", mock.Anything, tt.revisionID).Return(tt.onDeleteErr)
 					defer s.mockReviseManager.AssertExpectations(t)
 				}
 			}

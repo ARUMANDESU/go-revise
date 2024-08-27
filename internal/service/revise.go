@@ -23,8 +23,8 @@ type ReviseProvider interface {
 //go:generate mockery --name ReviseManager --output mocks
 type ReviseManager interface {
 	CreateRevise(ctx context.Context, revise domain.ReviseItem) error
-	UpdateRevise(ctx context.Context, revise domain.ReviseItem) (domain.ReviseItem, error)
-	DeleteRevise(ctx context.Context, id string) (domain.ReviseItem, error)
+	UpdateRevise(ctx context.Context, revise domain.ReviseItem) error
+	DeleteRevise(ctx context.Context, id string) error
 }
 
 type Revise struct {
@@ -142,7 +142,7 @@ func (r *Revise) Delete(ctx context.Context, id string, userID string) (domain.R
 		return domain.ReviseItem{}, ErrUnauthorized
 	}
 
-	reviseItem, err = r.reviseManager.DeleteRevise(ctx, id)
+	err = r.reviseManager.DeleteRevise(ctx, id)
 	if err != nil {
 		switch {
 		case errors.Is(err, storage.ErrNotFound):
