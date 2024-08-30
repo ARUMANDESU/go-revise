@@ -13,7 +13,8 @@ import (
 type ReviseItem struct {
 	// I think optemistic locking is not needed here
 	// because we are not updating the same record concurrently
-	// so I am not adding version field here
+	// so I am not adding version field here.
+	// If needed updated_at timestamp can be used.
 
 	// Immutable fields
 	ID     uuid.UUID

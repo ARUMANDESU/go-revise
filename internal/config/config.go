@@ -13,7 +13,13 @@ type Config struct {
 	Env             string        `yaml:"env" env:"ENV" env-default:"local"`
 	StartTimeout    time.Duration `yaml:"start_timeout" env:"START_TIMEOUT" env-default:"10s"`
 	ShutdownTimeout time.Duration `yaml:"shutdown_timeout" env:"SHUTDOWN_TIMEOUT" env-default:"10s"`
-	TelegramToken   string        `yaml:"telegram_token" env:"TELEGRAM_TOKEN"`
+	Telegram        Telegram      `yaml:"telegram"`
+}
+
+type Telegram struct {
+	Token      string `yaml:"token" env:"TELEGRAM_TOKEN"`
+	WebhookURL string `yaml:"webhook_url" env:"TELEGRAM_WEBHOOK_URL"`
+	URL        string `yaml:"url" env:"TELEGRAM_URL"`
 }
 
 func MustLoad() *Config {

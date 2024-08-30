@@ -15,6 +15,8 @@ func ValidateFilterUserID(value any) error {
 		if _, ok := value.(int64); !ok {
 			return errors.New("user id must be either string(uuid) or int64(telegram user id)")
 		}
+
+		return nil
 	}
 
 	return validation.Validate(uid, is.UUID) // if string is provided, it must be a valid uuid
