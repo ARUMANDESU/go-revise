@@ -52,7 +52,7 @@ func NewRevise(log *slog.Logger, storages ReviseStorages) Revise {
 	}
 }
 
-func (r *Revise) Get(ctx context.Context, id string) (domain.ReviseItem, error) {
+func (r Revise) Get(ctx context.Context, id string) (domain.ReviseItem, error) {
 	const op = "service.revise.get"
 
 	err := validation.Validate(id, validation.Required, is.UUID)
@@ -74,7 +74,7 @@ func (r *Revise) Get(ctx context.Context, id string) (domain.ReviseItem, error) 
 	return reviseItem, nil
 }
 
-func (r *Revise) List(ctx context.Context, dto domain.ListReviseItemDTO) ([]domain.ReviseItem, domain.PaginationMetadata, error) {
+func (r Revise) List(ctx context.Context, dto domain.ListReviseItemDTO) ([]domain.ReviseItem, domain.PaginationMetadata, error) {
 	const op = "service.revise.list"
 
 	err := validation.ValidateStruct(&dto,
@@ -120,7 +120,7 @@ func (r *Revise) List(ctx context.Context, dto domain.ListReviseItemDTO) ([]doma
 	return reviseItems, pagination, nil
 }
 
-func (r *Revise) Create(ctx context.Context, dto domain.CreateReviseItemDTO) (domain.ReviseItem, error) {
+func (r Revise) Create(ctx context.Context, dto domain.CreateReviseItemDTO) (domain.ReviseItem, error) {
 	const op = "service.revise.create"
 
 	err := validation.ValidateStruct(&dto,
@@ -162,7 +162,7 @@ func (r *Revise) Create(ctx context.Context, dto domain.CreateReviseItemDTO) (do
 	return reviseItem, nil
 }
 
-func (r *Revise) Update(ctx context.Context, dto domain.UpdateReviseItemDTO) (domain.ReviseItem, error) {
+func (r Revise) Update(ctx context.Context, dto domain.UpdateReviseItemDTO) (domain.ReviseItem, error) {
 	const op = "service.revise.update"
 
 	reviseItemUpdateFields := []any{"name", "description", "tags"}
@@ -209,7 +209,7 @@ func (r *Revise) Update(ctx context.Context, dto domain.UpdateReviseItemDTO) (do
 	return reviseItem, nil
 }
 
-func (r *Revise) Delete(ctx context.Context, id string, userID string) (domain.ReviseItem, error) {
+func (r Revise) Delete(ctx context.Context, id string, userID string) (domain.ReviseItem, error) {
 	const op = "service.revise.delete"
 
 	err := validation.Validate(id, validation.Required.Error("id must provided"), is.UUID.Error("id must be a valid UUID"))

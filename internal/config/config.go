@@ -14,6 +14,7 @@ type Config struct {
 	StartTimeout    time.Duration `yaml:"start_timeout" env:"START_TIMEOUT" env-default:"10s"`
 	ShutdownTimeout time.Duration `yaml:"shutdown_timeout" env:"SHUTDOWN_TIMEOUT" env-default:"10s"`
 	Telegram        Telegram      `yaml:"telegram"`
+	DatabaseURL     string        `yaml:"database_url" env:"DATABASE_URL"`
 }
 
 type Telegram struct {

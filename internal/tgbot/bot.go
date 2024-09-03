@@ -26,12 +26,15 @@ type UserService interface {
 }
 
 type Bot struct {
-	cfg        config.Telegram
-	bot        *tb.Bot
-	httpServer *http.Server
+	cfg           config.Telegram
+	log           *slog.Logger
+	bot           *tb.Bot
+	httpServer    *http.Server
+	ReviseService ReviseService
+	UserService   UserService
 }
 
-func NewBot(cfg config.Telegram, logger *slog.Logger) (*Bot, error) {
+func NewBot(cfg config.Telegram, logger *slog.Logger, reviseService ReviseService, userService UserService) (*Bot, error) {
 
 	httpServer := NewHTTPServer(cfg)
 
@@ -61,9 +64,12 @@ func NewBot(cfg config.Telegram, logger *slog.Logger) (*Bot, error) {
 	}
 
 	return &Bot{
-		bot:        b,
-		cfg:        cfg,
-		httpServer: httpServer,
+		bot:           b,
+		cfg:           cfg,
+		log:           logger,
+		httpServer:    httpServer,
+		ReviseService: reviseService,
+		UserService:   userService,
 	}, nil
 }
 
@@ -88,6 +94,9 @@ func (b *Bot) AddHandlers() {
 	b.bot.Handle("/start", b.handleStartCommand)
 	b.bot.Handle("/help", b.handleHelpCommand)
 
+	b.bot.Handle(&ReviseMenuButtonInline, b.handleReviseMenuCommand)
+	b.bot.Handle(&ReviseListButtonInline, b.handleReviseListCommand)
+	b.bot.Handle(&ReviseCreateButtonInline, b.handleReviseCreateCommand)
 }
 
 func (b *Bot) Start() error {
