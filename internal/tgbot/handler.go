@@ -27,3 +27,17 @@ func (b *Bot) handleHelpCommand(ctx tb.Context) error {
 
 	return nil
 }
+
+func (b *Bot) handleReviseCommand(ctx tb.Context) error {
+	ctx.Send("Revise commands:", &tb.ReplyMarkup{
+		ResizeKeyboard: true,
+		InlineKeyboard: [][]tb.InlineButton{
+			{
+				tb.InlineButton{Text: "/revise_create", InlineQueryChat: "/revise_create"},
+				tb.InlineButton{Text: "/revise_list", InlineQueryChat: "/revise_list"},
+			},
+		},
+	},
+	)
+	return nil
+}

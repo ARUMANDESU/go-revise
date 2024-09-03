@@ -9,7 +9,7 @@ import (
 	"path/filepath"
 	"testing"
 
-	"github.com/ARUMANDESU/go-revise/internal/service"
+	revisesvc "github.com/ARUMANDESU/go-revise/internal/service/revise"
 	"github.com/ARUMANDESU/go-revise/internal/storage/sqlite"
 	"github.com/thejerf/slogassert"
 )
@@ -20,7 +20,7 @@ var migrationsFs embed.FS
 type Suite struct {
 	*testing.T
 	LogHandler *slogassert.Handler
-	Service    service.Revise
+	Service    revisesvc.Revise
 }
 
 func NewSuite(t *testing.T) (*Suite, func()) {
@@ -34,8 +34,8 @@ func NewSuite(t *testing.T) (*Suite, func()) {
 	return &Suite{
 			T:          t,
 			LogHandler: handler,
-			Service: service.NewRevise(log,
-				service.ReviseStorages{
+			Service: revisesvc.NewRevise(log,
+				revisesvc.ReviseStorages{
 					ReviseProvider: storage,
 					ReviseManager:  storage,
 					UserProvider:   storage,

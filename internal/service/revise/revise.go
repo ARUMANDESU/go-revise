@@ -1,4 +1,4 @@
-package service
+package revisesvc
 
 import (
 	"context"
@@ -8,6 +8,7 @@ import (
 	"time"
 
 	"github.com/ARUMANDESU/go-revise/internal/domain"
+	"github.com/ARUMANDESU/go-revise/internal/service"
 	"github.com/ARUMANDESU/go-revise/internal/storage"
 	"github.com/go-ozzo/ozzo-validation/is"
 	validation "github.com/go-ozzo/ozzo-validation/v4"
@@ -56,17 +57,17 @@ func (r *Revise) Get(ctx context.Context, id string) (domain.ReviseItem, error) 
 
 	err := validation.Validate(id, validation.Required, is.UUID)
 	if err != nil {
-		return domain.ReviseItem{}, fmt.Errorf("%w: %w", ErrInvalidArgument, err)
+		return domain.ReviseItem{}, fmt.Errorf("%w: %w", service.ErrInvalidArgument, err)
 	}
 
 	reviseItem, err := r.ReviseProvider.GetRevise(ctx, id)
 	if err != nil {
 		switch {
 		case errors.Is(err, storage.ErrNotFound):
-			return domain.ReviseItem{}, ErrNotFound
+			return domain.ReviseItem{}, service.ErrNotFound
 		default:
 			r.log.Error(domain.WrapErrorWithOp(err, op, "failed to get revise").Error())
-			return domain.ReviseItem{}, ErrInternal
+			return domain.ReviseItem{}, service.ErrInternal
 		}
 	}
 
@@ -82,7 +83,7 @@ func (r *Revise) List(ctx context.Context, dto domain.ListReviseItemDTO) ([]doma
 		validation.Field(&dto.Sort, validation.By(domain.ValidateSort)),
 	)
 	if err != nil {
-		return nil, domain.PaginationMetadata{}, fmt.Errorf("%w: %w", ErrInvalidArgument, err)
+		return nil, domain.PaginationMetadata{}, fmt.Errorf("%w: %w", service.ErrInvalidArgument, err)
 	}
 
 	// if user id is int64, then get the string(uuid) from the database
@@ -91,10 +92,10 @@ func (r *Revise) List(ctx context.Context, dto domain.ListReviseItemDTO) ([]doma
 		if err != nil {
 			switch {
 			case errors.Is(err, storage.ErrNotFound):
-				return nil, domain.PaginationMetadata{}, ErrNotFound
+				return nil, domain.PaginationMetadata{}, service.ErrNotFound
 			default:
 				r.log.Error(domain.WrapErrorWithOp(err, op, "failed to get user").Error())
-				return nil, domain.PaginationMetadata{}, ErrInternal
+				return nil, domain.PaginationMetadata{}, service.ErrInternal
 			}
 		}
 		dto.UserID = user.ID.String()
@@ -110,10 +111,10 @@ func (r *Revise) List(ctx context.Context, dto domain.ListReviseItemDTO) ([]doma
 	reviseItems, pagination, err := r.ReviseProvider.ListRevises(ctx, dto)
 	if err != nil {
 		if errors.Is(err, storage.ErrNotFound) {
-			return nil, domain.PaginationMetadata{}, ErrNotFound
+			return nil, domain.PaginationMetadata{}, service.ErrNotFound
 		}
 		r.log.Error(domain.WrapErrorWithOp(err, op, "failed to list revise").Error())
-		return nil, domain.PaginationMetadata{}, ErrInternal
+		return nil, domain.PaginationMetadata{}, service.ErrInternal
 	}
 
 	return reviseItems, pagination, nil
@@ -129,13 +130,13 @@ func (r *Revise) Create(ctx context.Context, dto domain.CreateReviseItemDTO) (do
 		validation.Field(&dto.Description, validation.By(domain.ValidateDescription)),
 	)
 	if err != nil {
-		return domain.ReviseItem{}, fmt.Errorf("%w: %w", ErrInvalidArgument, err)
+		return domain.ReviseItem{}, fmt.Errorf("%w: %w", service.ErrInvalidArgument, err)
 	}
 
 	id, err := uuid.NewV7()
 	if err != nil {
 		r.log.Error(domain.WrapErrorWithOp(err, op, "failed to generate new UUID").Error())
-		return domain.ReviseItem{}, ErrInternal
+		return domain.ReviseItem{}, service.ErrInternal
 	}
 
 	reviseItem := domain.ReviseItem{
@@ -155,7 +156,7 @@ func (r *Revise) Create(ctx context.Context, dto domain.CreateReviseItemDTO) (do
 
 	if err := r.ReviseManager.CreateRevise(ctx, reviseItem); err != nil {
 		r.log.Error(domain.WrapErrorWithOp(err, op, "failed to create revise").Error())
-		return domain.ReviseItem{}, ErrInternal
+		return domain.ReviseItem{}, service.ErrInternal
 	}
 
 	return reviseItem, nil
@@ -175,22 +176,22 @@ func (r *Revise) Update(ctx context.Context, dto domain.UpdateReviseItemDTO) (do
 		validation.Field(&dto.UpdateFields, validation.Required, validation.Each(validation.In(reviseItemUpdateFields...))),
 	)
 	if err != nil {
-		return domain.ReviseItem{}, fmt.Errorf("%w: %w", ErrInvalidArgument, err)
+		return domain.ReviseItem{}, fmt.Errorf("%w: %w", service.ErrInvalidArgument, err)
 	}
 
 	reviseItem, err := r.ReviseProvider.GetRevise(ctx, dto.ID)
 	if err != nil {
 		switch {
 		case errors.Is(err, storage.ErrNotFound):
-			return domain.ReviseItem{}, ErrNotFound
+			return domain.ReviseItem{}, service.ErrNotFound
 		default:
 			r.log.Error(domain.WrapErrorWithOp(err, op, "failed to get revise").Error())
-			return domain.ReviseItem{}, ErrInternal
+			return domain.ReviseItem{}, service.ErrInternal
 		}
 	}
 
 	if !reviseItem.AbleToUpdate(dto.UserID) {
-		return domain.ReviseItem{}, ErrUnauthorized
+		return domain.ReviseItem{}, service.ErrUnauthorized
 	}
 
 	reviseItem = reviseItem.PartialUpdate(dto)
@@ -198,10 +199,10 @@ func (r *Revise) Update(ctx context.Context, dto domain.UpdateReviseItemDTO) (do
 	if err := r.ReviseManager.UpdateRevise(ctx, reviseItem); err != nil {
 		switch {
 		case errors.Is(err, storage.ErrNotFound):
-			return domain.ReviseItem{}, ErrNotFound
+			return domain.ReviseItem{}, service.ErrNotFound
 		default:
 			r.log.Error(domain.WrapErrorWithOp(err, op, "failed to update revise").Error())
-			return domain.ReviseItem{}, ErrInternal
+			return domain.ReviseItem{}, service.ErrInternal
 		}
 	}
 
@@ -213,36 +214,36 @@ func (r *Revise) Delete(ctx context.Context, id string, userID string) (domain.R
 
 	err := validation.Validate(id, validation.Required.Error("id must provided"), is.UUID.Error("id must be a valid UUID"))
 	if err != nil {
-		return domain.ReviseItem{}, fmt.Errorf("%w: %w", ErrInvalidArgument, err)
+		return domain.ReviseItem{}, fmt.Errorf("%w: %w", service.ErrInvalidArgument, err)
 	}
 	err = validation.Validate(userID, validation.Required.Error("userID must provided"), is.UUID.Error("userID must be a valid UUID"))
 	if err != nil {
-		return domain.ReviseItem{}, fmt.Errorf("%w: %w", ErrInvalidArgument, err)
+		return domain.ReviseItem{}, fmt.Errorf("%w: %w", service.ErrInvalidArgument, err)
 	}
 
 	reviseItem, err := r.ReviseProvider.GetRevise(ctx, id)
 	if err != nil {
 		switch {
 		case errors.Is(err, storage.ErrNotFound):
-			return domain.ReviseItem{}, ErrNotFound
+			return domain.ReviseItem{}, service.ErrNotFound
 		default:
 			r.log.Error(domain.WrapErrorWithOp(err, op, "failed to get revise").Error())
-			return domain.ReviseItem{}, ErrInternal
+			return domain.ReviseItem{}, service.ErrInternal
 		}
 	}
 
 	if !reviseItem.AbleToUpdate(userID) {
-		return domain.ReviseItem{}, ErrUnauthorized
+		return domain.ReviseItem{}, service.ErrUnauthorized
 	}
 
 	err = r.ReviseManager.DeleteRevise(ctx, id)
 	if err != nil {
 		switch {
 		case errors.Is(err, storage.ErrNotFound):
-			return domain.ReviseItem{}, ErrNotFound
+			return domain.ReviseItem{}, service.ErrNotFound
 		default:
 			r.log.Error(domain.WrapErrorWithOp(err, op, "failed to get revise").Error())
-			return domain.ReviseItem{}, ErrInternal
+			return domain.ReviseItem{}, service.ErrInternal
 		}
 	}
 

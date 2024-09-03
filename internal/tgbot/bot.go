@@ -19,6 +19,12 @@ type ReviseService interface {
 	Delete(ctx context.Context, id string, userID string) (domain.ReviseItem, error)
 }
 
+type UserService interface {
+	Get(ctx context.Context, id string) (domain.User, error)
+	GetByChatID(ctx context.Context, chatID int64) (domain.User, error)
+	Create(ctx context.Context, chatID int64) (domain.User, error)
+}
+
 type Bot struct {
 	cfg        config.Telegram
 	bot        *tb.Bot

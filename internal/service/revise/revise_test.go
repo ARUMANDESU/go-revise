@@ -1,4 +1,4 @@
-package service
+package revisesvc
 
 import (
 	"context"
@@ -6,7 +6,8 @@ import (
 	"testing"
 
 	"github.com/ARUMANDESU/go-revise/internal/domain"
-	"github.com/ARUMANDESU/go-revise/internal/service/mocks"
+	"github.com/ARUMANDESU/go-revise/internal/service"
+	"github.com/ARUMANDESU/go-revise/internal/service/revise/mocks"
 	"github.com/ARUMANDESU/go-revise/internal/storage"
 	"github.com/ARUMANDESU/go-revise/pkg/logger"
 	"github.com/brianvoe/gofakeit/v7"
@@ -62,19 +63,19 @@ func TestRevise_Get(t *testing.T) {
 			name:       "error: empty ID",
 			id:         "",
 			provideErr: nil,
-			wantErr:    ErrInvalidArgument,
+			wantErr:    service.ErrInvalidArgument,
 		},
 		{
 			name:       "error: revise not found",
 			id:         guuid.New().String(),
 			provideErr: storage.ErrNotFound,
-			wantErr:    ErrNotFound,
+			wantErr:    service.ErrNotFound,
 		},
 		{
 			name:       "error: internal error",
 			id:         guuid.New().String(),
 			provideErr: errors.New("unexpected db error"),
-			wantErr:    ErrInternal,
+			wantErr:    service.ErrInternal,
 		},
 	}
 
@@ -82,7 +83,7 @@ func TestRevise_Get(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			s := NewSuite(t)
 
-			if !errors.Is(tt.wantErr, ErrInvalidArgument) {
+			if !errors.Is(tt.wantErr, service.ErrInvalidArgument) {
 				s.mockReviseProvider.On("GetRevise", mock.Anything, tt.id).Return(domain.ReviseItem{}, tt.provideErr)
 				defer s.mockReviseProvider.AssertExpectations(t)
 			}
@@ -128,7 +129,7 @@ func TestRevise_Create(t *testing.T) {
 				Name:   "", // must by non-empty
 			},
 			mockErr: nil,
-			wantErr: ErrInvalidArgument,
+			wantErr: service.ErrInvalidArgument,
 		},
 		{
 			name: "error: internal error",
@@ -137,7 +138,7 @@ func TestRevise_Create(t *testing.T) {
 				Name:   gofakeit.LetterN(domain.ValidNameMinLength + 1),
 			},
 			mockErr: errors.New("unexpected db error"),
-			wantErr: ErrInternal,
+			wantErr: service.ErrInternal,
 		},
 		{
 			name: "error: invalid arguments",
@@ -148,7 +149,7 @@ func TestRevise_Create(t *testing.T) {
 				Description: gofakeit.Sentence(domain.ValidDescriptionMinLength - 1),
 			},
 			mockErr: nil,
-			wantErr: ErrInvalidArgument,
+			wantErr: service.ErrInvalidArgument,
 		},
 	}
 
@@ -156,7 +157,7 @@ func TestRevise_Create(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			s := NewSuite(t)
 
-			if !errors.Is(tt.wantErr, ErrInvalidArgument) {
+			if !errors.Is(tt.wantErr, service.ErrInvalidArgument) {
 				s.mockReviseManager.On("CreateRevise", mock.Anything, mock.AnythingOfType("domain.ReviseItem")).Return(tt.mockErr)
 				defer s.mockReviseManager.AssertExpectations(t)
 			}
@@ -221,7 +222,7 @@ func TestRevise_Delete_FailPath(t *testing.T) {
 			reviseItem:  domain.ReviseItem{},
 			onGetErr:    nil,
 			onDeleteErr: nil,
-			wantErr:     ErrInvalidArgument,
+			wantErr:     service.ErrInvalidArgument,
 		},
 		{
 			name:        "error: empty user ID",
@@ -230,7 +231,7 @@ func TestRevise_Delete_FailPath(t *testing.T) {
 			reviseItem:  domain.ReviseItem{},
 			onGetErr:    nil,
 			onDeleteErr: nil,
-			wantErr:     ErrInvalidArgument,
+			wantErr:     service.ErrInvalidArgument,
 		},
 		{
 			name:        "error: revise not found",
@@ -239,7 +240,7 @@ func TestRevise_Delete_FailPath(t *testing.T) {
 			reviseItem:  domain.ReviseItem{},
 			onGetErr:    storage.ErrNotFound,
 			onDeleteErr: nil,
-			wantErr:     ErrNotFound,
+			wantErr:     service.ErrNotFound,
 		},
 		{
 			name:       "error: not found on delete",
@@ -251,7 +252,7 @@ func TestRevise_Delete_FailPath(t *testing.T) {
 			},
 			onGetErr:    nil,
 			onDeleteErr: storage.ErrNotFound,
-			wantErr:     ErrNotFound,
+			wantErr:     service.ErrNotFound,
 		},
 		{
 			name:       "error: unauthorized",
@@ -263,7 +264,7 @@ func TestRevise_Delete_FailPath(t *testing.T) {
 			},
 			onGetErr:    nil,
 			onDeleteErr: nil,
-			wantErr:     ErrUnauthorized,
+			wantErr:     service.ErrUnauthorized,
 		},
 		{
 			name:        "error: internal error",
@@ -272,7 +273,7 @@ func TestRevise_Delete_FailPath(t *testing.T) {
 			reviseItem:  domain.ReviseItem{},
 			onGetErr:    errors.New("unexpected db error"),
 			onDeleteErr: nil,
-			wantErr:     ErrInternal,
+			wantErr:     service.ErrInternal,
 		},
 		{
 			name:       "error: internal error",
@@ -287,7 +288,7 @@ func TestRevise_Delete_FailPath(t *testing.T) {
 			},
 			onGetErr:    nil,
 			onDeleteErr: errors.New("unexpected db error"),
-			wantErr:     ErrInternal,
+			wantErr:     service.ErrInternal,
 		},
 	}
 
@@ -295,10 +296,10 @@ func TestRevise_Delete_FailPath(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			s := NewSuite(t)
 
-			if !errors.Is(tt.wantErr, ErrInvalidArgument) {
+			if !errors.Is(tt.wantErr, service.ErrInvalidArgument) {
 				s.mockReviseProvider.On("GetRevise", mock.Anything, tt.revisionID).Return(tt.reviseItem, tt.onGetErr)
 				defer s.mockReviseProvider.AssertExpectations(t)
-				if tt.onGetErr == nil && !errors.Is(tt.wantErr, ErrUnauthorized) {
+				if tt.onGetErr == nil && !errors.Is(tt.wantErr, service.ErrUnauthorized) {
 					s.mockReviseManager.On("DeleteRevise", mock.Anything, tt.revisionID).Return(tt.onDeleteErr)
 					defer s.mockReviseManager.AssertExpectations(t)
 				}
@@ -462,7 +463,7 @@ func TestRevise_Update_FailPath(t *testing.T) {
 			initial:     domain.ReviseItem{},
 			onGetErr:    nil,
 			onUpdateErr: nil,
-			wantErr:     ErrInvalidArgument,
+			wantErr:     service.ErrInvalidArgument,
 		},
 		{
 			name: "error: empty user ID",
@@ -475,7 +476,7 @@ func TestRevise_Update_FailPath(t *testing.T) {
 			initial:     domain.ReviseItem{},
 			onGetErr:    nil,
 			onUpdateErr: nil,
-			wantErr:     ErrInvalidArgument,
+			wantErr:     service.ErrInvalidArgument,
 		},
 		{
 			name: "error: revise not found",
@@ -488,7 +489,7 @@ func TestRevise_Update_FailPath(t *testing.T) {
 			initial:     domain.ReviseItem{},
 			onGetErr:    storage.ErrNotFound,
 			onUpdateErr: nil,
-			wantErr:     ErrNotFound,
+			wantErr:     service.ErrNotFound,
 		},
 		{
 			name: "error: not found on update",
@@ -504,7 +505,7 @@ func TestRevise_Update_FailPath(t *testing.T) {
 			},
 			onGetErr:    nil,
 			onUpdateErr: storage.ErrNotFound,
-			wantErr:     ErrNotFound,
+			wantErr:     service.ErrNotFound,
 		},
 		{
 			name: "error: unauthorized",
@@ -519,7 +520,7 @@ func TestRevise_Update_FailPath(t *testing.T) {
 				UserID: uuid.FromStringOrNil(guuid.New().String()), // different user ID
 			},
 			onGetErr:    nil,
-			wantErr:     ErrUnauthorized,
+			wantErr:     service.ErrUnauthorized,
 			onUpdateErr: nil,
 		},
 		{
@@ -533,7 +534,7 @@ func TestRevise_Update_FailPath(t *testing.T) {
 			initial:     domain.ReviseItem{},
 			onGetErr:    errors.New("unexpected db error"),
 			onUpdateErr: nil,
-			wantErr:     ErrInternal,
+			wantErr:     service.ErrInternal,
 		},
 		{
 			name: "error: internal error",
@@ -550,7 +551,7 @@ func TestRevise_Update_FailPath(t *testing.T) {
 			},
 			onGetErr:    nil,
 			onUpdateErr: errors.New("unexpected db error"),
-			wantErr:     ErrInternal,
+			wantErr:     service.ErrInternal,
 		},
 		{
 			name: "error: invalid arguments",
@@ -567,7 +568,7 @@ func TestRevise_Update_FailPath(t *testing.T) {
 			},
 			onGetErr:    nil,
 			onUpdateErr: nil,
-			wantErr:     ErrInvalidArgument,
+			wantErr:     service.ErrInvalidArgument,
 		},
 		{
 			name: "error: invalid update fields",
@@ -584,7 +585,7 @@ func TestRevise_Update_FailPath(t *testing.T) {
 			},
 			onGetErr:    nil,
 			onUpdateErr: nil,
-			wantErr:     ErrInvalidArgument,
+			wantErr:     service.ErrInvalidArgument,
 		},
 	}
 
@@ -592,10 +593,10 @@ func TestRevise_Update_FailPath(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			s := NewSuite(t)
 
-			if !errors.Is(tt.wantErr, ErrInvalidArgument) {
+			if !errors.Is(tt.wantErr, service.ErrInvalidArgument) {
 				s.mockReviseProvider.On("GetRevise", mock.Anything, tt.dto.ID).Return(tt.initial, tt.onGetErr)
 				defer s.mockReviseProvider.AssertExpectations(t)
-				if tt.onGetErr == nil && !errors.Is(tt.wantErr, ErrUnauthorized) {
+				if tt.onGetErr == nil && !errors.Is(tt.wantErr, service.ErrUnauthorized) {
 					s.mockReviseManager.On("UpdateRevise", mock.Anything, mock.AnythingOfType("domain.ReviseItem")).Return(tt.onUpdateErr)
 					defer s.mockReviseManager.AssertExpectations(t)
 				}
@@ -708,7 +709,7 @@ func TestRevise_List_FailPath(t *testing.T) {
 			},
 			onGetErr:  nil,
 			onListErr: nil,
-			wantErr:   ErrInvalidArgument,
+			wantErr:   service.ErrInvalidArgument,
 		},
 		{
 			name: "error: invalid user ID",
@@ -717,7 +718,7 @@ func TestRevise_List_FailPath(t *testing.T) {
 			},
 			onGetErr:  nil,
 			onListErr: nil,
-			wantErr:   ErrInvalidArgument,
+			wantErr:   service.ErrInvalidArgument,
 		},
 		{
 			name: "error: user not found",
@@ -726,7 +727,7 @@ func TestRevise_List_FailPath(t *testing.T) {
 			},
 			onGetErr:  storage.ErrNotFound,
 			onListErr: nil,
-			wantErr:   ErrNotFound,
+			wantErr:   service.ErrNotFound,
 		},
 		{
 			name: "error: revise not found",
@@ -735,7 +736,7 @@ func TestRevise_List_FailPath(t *testing.T) {
 			},
 			onGetErr:  nil,
 			onListErr: storage.ErrNotFound,
-			wantErr:   ErrNotFound,
+			wantErr:   service.ErrNotFound,
 		},
 		{
 			name: "error: internal error",
@@ -744,7 +745,7 @@ func TestRevise_List_FailPath(t *testing.T) {
 			},
 			onGetErr:  errors.New("unexpected db error"),
 			onListErr: nil,
-			wantErr:   ErrInternal,
+			wantErr:   service.ErrInternal,
 		},
 		{
 			name: "error: internal error",
@@ -753,7 +754,7 @@ func TestRevise_List_FailPath(t *testing.T) {
 			},
 			onGetErr:  nil,
 			onListErr: errors.New("unexpected db error"),
-			wantErr:   ErrInternal,
+			wantErr:   service.ErrInternal,
 		},
 	}
 
@@ -761,7 +762,7 @@ func TestRevise_List_FailPath(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			s := NewSuite(t)
 
-			if !errors.Is(tt.wantErr, ErrInvalidArgument) {
+			if !errors.Is(tt.wantErr, service.ErrInvalidArgument) {
 				if _, ok := tt.dto.UserID.(int64); ok {
 					s.mockUserProvider.On("GetUserByTelegramID", mock.Anything, mock.AnythingOfType("int64")).
 						Return(domain.User{}, tt.onGetErr)
