@@ -16,7 +16,7 @@ import (
 
 func TestService_Revise_Get(t *testing.T) {
 	ctx := context.Background()
-	s, cleanup := NewSuite(t)
+	s, cleanup := NewReviseSuite(t)
 	defer cleanup()
 
 	tests := []struct {
@@ -68,7 +68,7 @@ func TestService_Revise_Get(t *testing.T) {
 
 func TestService_Revise_Get_FailPath(t *testing.T) {
 	ctx := context.Background()
-	s, cleanup := NewSuite(t)
+	s, cleanup := NewReviseSuite(t)
 	defer cleanup()
 
 	tests := []struct {
@@ -105,7 +105,7 @@ func TestService_Revise_Get_FailPath(t *testing.T) {
 
 func TestService_Revise_Create(t *testing.T) {
 	ctx := context.Background()
-	s, cleanup := NewSuite(t)
+	s, cleanup := NewReviseSuite(t)
 	defer cleanup()
 
 	tests := []struct {
@@ -180,7 +180,7 @@ func TestService_Revise_Create(t *testing.T) {
 
 func TestService_Revise_Create_FailPath(t *testing.T) {
 	ctx := context.Background()
-	s, cleanup := NewSuite(t)
+	s, cleanup := NewReviseSuite(t)
 	defer cleanup()
 
 	tests := []struct {
@@ -231,7 +231,7 @@ func TestService_Revise_Create_FailPath(t *testing.T) {
 
 func TestService_Revise_Delete(t *testing.T) {
 	ctx := context.Background()
-	s, cleanup := NewSuite(t)
+	s, cleanup := NewReviseSuite(t)
 	defer cleanup()
 
 	tests := []struct {
@@ -268,7 +268,7 @@ func TestService_Revise_Delete(t *testing.T) {
 
 func TestService_Revise_Delete_FailPath(t *testing.T) {
 	ctx := context.Background()
-	s, cleanup := NewSuite(t)
+	s, cleanup := NewReviseSuite(t)
 	defer cleanup()
 
 	tests := []struct {
@@ -340,7 +340,7 @@ func TestService_Revise_Delete_FailPath(t *testing.T) {
 
 func TestService_Revise_Update_HappyPath(t *testing.T) {
 	ctx := context.Background()
-	s, cleanup := NewSuite(t)
+	s, cleanup := NewReviseSuite(t)
 	defer cleanup()
 
 	tests := []struct {
@@ -494,7 +494,7 @@ func TestService_Revise_Update_HappyPath(t *testing.T) {
 
 func TestService_Revise_Update_FailPaht(t *testing.T) {
 	ctx := context.Background()
-	s, cleanup := NewSuite(t)
+	s, cleanup := NewReviseSuite(t)
 	defer cleanup()
 
 	tests := []struct {
@@ -602,7 +602,7 @@ func TestService_Revise_Update_FailPaht(t *testing.T) {
 
 func TestService_Revise_List_HappyPath(t *testing.T) {
 	ctx := context.Background()
-	s, cleanup := NewSuite(t)
+	s, cleanup := NewReviseSuite(t)
 	defer cleanup()
 
 	tests := []struct {
@@ -667,7 +667,7 @@ func TestService_Revise_List_HappyPath(t *testing.T) {
 
 func TestService_Revise_List_FailPath(t *testing.T) {
 	ctx := context.Background()
-	s, cleanup := NewSuite(t)
+	s, cleanup := NewReviseSuite(t)
 	defer cleanup()
 
 	invalidPagination := domain.Pagination{Page: 0, PageSize: 1}

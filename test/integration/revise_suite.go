@@ -17,13 +17,13 @@ import (
 //go:embed migrations/*
 var migrationsFs embed.FS
 
-type Suite struct {
+type ReviseSuite struct {
 	*testing.T
 	LogHandler *slogassert.Handler
 	Service    revisesvc.Revise
 }
 
-func NewSuite(t *testing.T) (*Suite, func()) {
+func NewReviseSuite(t *testing.T) (*ReviseSuite, func()) {
 	t.Helper()
 
 	handler := slogassert.New(t, slog.LevelWarn, nil)
@@ -31,7 +31,7 @@ func NewSuite(t *testing.T) (*Suite, func()) {
 
 	storage, cleanup := setupSqlite(t)
 
-	return &Suite{
+	return &ReviseSuite{
 			T:          t,
 			LogHandler: handler,
 			Service: revisesvc.NewRevise(log,

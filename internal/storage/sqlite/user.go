@@ -20,7 +20,7 @@ func (s *Storage) GetUser(ctx context.Context, id string) (domain.User, error) {
 		`
 
 	var user domain.User
-	err := s.DB.QueryRowContext(ctx, query, id).Scan(user.ID, user.TelegramID)
+	err := s.DB.QueryRowContext(ctx, query, id).Scan(&user.ID, &user.TelegramID)
 	if err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
 			return domain.User{}, domain.WrapErrorWithOp(
@@ -45,7 +45,7 @@ func (s *Storage) GetUserByChatID(ctx context.Context, chatID int64) (domain.Use
 		`
 
 	var user domain.User
-	err := s.DB.QueryRowContext(ctx, query, chatID).Scan(user.ID, user.TelegramID)
+	err := s.DB.QueryRowContext(ctx, query, chatID).Scan(&user.ID, &user.TelegramID)
 	if err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
 			return domain.User{}, domain.WrapErrorWithOp(
