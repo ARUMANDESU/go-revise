@@ -31,7 +31,7 @@ type ReviseManager interface {
 //go:generate mockery --name UserProvider --output mocks
 type UserProvider interface {
 	GetUser(ctx context.Context, id string) (domain.User, error)
-	GetUserByTelegramID(ctx context.Context, telegramID int64) (domain.User, error)
+	GetUserByChatID(ctx context.Context, chatID int64) (domain.User, error)
 }
 
 type ReviseStorages struct {
@@ -88,7 +88,7 @@ func (r *Revise) List(ctx context.Context, dto domain.ListReviseItemDTO) ([]doma
 
 	// if user id is int64, then get the string(uuid) from the database
 	if telegramID, ok := dto.UserID.(int64); ok {
-		user, err := r.UserProvider.GetUserByTelegramID(ctx, telegramID)
+		user, err := r.UserProvider.GetUserByChatID(ctx, telegramID)
 		if err != nil {
 			switch {
 			case errors.Is(err, storage.ErrNotFound):

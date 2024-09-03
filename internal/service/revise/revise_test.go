@@ -677,7 +677,7 @@ func TestRevise_List_HappyPath(t *testing.T) {
 			s := NewSuite(t)
 
 			if _, ok := tt.dto.UserID.(int64); ok {
-				s.mockUserProvider.On("GetUserByTelegramID", mock.Anything, tt.dto.UserID.(int64)).
+				s.mockUserProvider.On("GetUserByChatID", mock.Anything, tt.dto.UserID.(int64)).
 					Return(domain.User{ID: uid}, nil)
 				defer s.mockUserProvider.AssertExpectations(t)
 			}
@@ -764,7 +764,7 @@ func TestRevise_List_FailPath(t *testing.T) {
 
 			if !errors.Is(tt.wantErr, service.ErrInvalidArgument) {
 				if _, ok := tt.dto.UserID.(int64); ok {
-					s.mockUserProvider.On("GetUserByTelegramID", mock.Anything, mock.AnythingOfType("int64")).
+					s.mockUserProvider.On("GetUserByChatID", mock.Anything, mock.AnythingOfType("int64")).
 						Return(domain.User{}, tt.onGetErr)
 					defer s.mockUserProvider.AssertExpectations(t)
 				}
