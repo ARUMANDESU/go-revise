@@ -95,8 +95,21 @@ func (b *Bot) AddHandlers() {
 	b.bot.Handle("/help", b.handleHelpCommand)
 
 	b.bot.Handle(&ReviseMenuButtonInline, b.handleReviseMenuCommand)
+	b.bot.Handle("/revise_menu", b.handleReviseMenuCommand)
+
 	b.bot.Handle(&ReviseListButtonInline, b.handleReviseListCommand)
+	b.bot.Handle("/revise_list", b.handleReviseListCommand)
+
 	b.bot.Handle(&ReviseCreateButtonInline, b.handleReviseCreateCommand)
+	b.bot.Handle("/revise_create", b.handleReviseCreateCommand)
+
+	b.bot.SetCommands([]tb.Command{
+		{Text: "start", Description: "Start the bot"},
+		{Text: "help", Description: "Show help message"},
+		{Text: "revise_menu", Description: "Revise commands"},
+		{Text: "revise_list", Description: "List all revise items"},
+		{Text: "revise_create", Description: "Create a new revise item"},
+	})
 }
 
 func (b *Bot) Start() error {
