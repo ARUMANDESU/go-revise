@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"sync"
 
 	"github.com/ARUMANDESU/go-revise/internal/domain"
 	"github.com/ARUMANDESU/go-revise/internal/service"
@@ -68,7 +69,7 @@ func (b *Bot) handleReviseListCommand(ctx tb.Context) error {
 
 	log.Debug("Revise list command received")
 
-	reviseList, _, err := b.ReviseService.List(
+	reviseList, metadata, err := b.ReviseService.List(
 		context.Background(),
 		domain.ListReviseItemDTO{
 			UserID:     ctx.Sender().ID,
@@ -93,21 +94,27 @@ func (b *Bot) handleReviseListCommand(ctx tb.Context) error {
 		return nil
 	}
 
-	log.Debug("Revise list items", "items", reviseList)
-	var message string
-	for _, item := range reviseList {
-		message += fmt.Sprintf("%s\n Last revised: %s\n Next revise: %s\n\n", item.Name, item.LastRevisedAt.Format("2006-01-02"), item.NextRevisionAt.Format("2006-01-02"))
-	}
+	log.Debug("Revise items listed", "count", len(reviseList))
+	message := DisplayReviewItemsMarkdown(reviseList)
 
-	ctx.Send(message, &tb.ReplyMarkup{
+	log.Debug("Sending revise items list")
+
+	ctx.EditOrSend(message, tb.ModeMarkdown, &tb.ReplyMarkup{
 		ResizeKeyboard: true,
 		InlineKeyboard: [][]tb.InlineButton{
 			{
-				tb.InlineButton{Text: "Back", Data: "revise_menu"},
+				ReviseMenuButtonInline,
 				ReviseCreateButtonInline,
+			},
+			{
+				ReviseListPrevButtonInline,
+				tb.InlineButton{Text: fmt.Sprintf("%d/%d", metadata.CurrentPage, metadata.LastPage)},
+				ReviseListNextButtonInline,
 			},
 		},
 	})
+
+	log.Debug("Revise items list sent")
 
 	return nil
 }
@@ -128,63 +135,70 @@ func (b *Bot) handleReviseCreateCommand(ctx tb.Context) error {
 	})
 
 	var (
+		wg          sync.WaitGroup
 		name        string
 		description string
 	)
 
+	wg.Add(1)
 	ctx.Bot().Handle(tb.OnText, func(ctx tb.Context) error {
+		defer wg.Done()
 		name = ctx.Text()
-
-		ctx.Send("Enter the description of the item you want to revise.", &tb.ReplyMarkup{
-			ResizeKeyboard: true,
-			ForceReply:     true,
-		})
-
-		ctx.Respond(&tb.CallbackResponse{
-			Text: "Enter the description of the item you want to revise.",
-		})
-
-		ctx.Bot().Handle(tb.OnText, func(ctx tb.Context) error {
-			description = ctx.Text()
-
-			user, err := b.UserService.GetByChatID(context.Background(), ctx.Chat().ID)
-			if err != nil {
-				switch {
-				case errors.Is(err, service.ErrNotFound):
-					ctx.Send("You are not registered. Please use /start command to register.")
-					return nil
-				default:
-					log.Error("failed to get user by chat ID", "error", err)
-					return err
-				}
-			}
-
-			reviseItem, err := b.ReviseService.Create(
-				context.Background(),
-				domain.CreateReviseItemDTO{
-					UserID:      user.ID.String(),
-					Name:        name,
-					Description: description,
-				},
-			)
-			if err != nil {
-				switch {
-				case errors.Is(err, service.ErrInvalidArgument):
-					ctx.Send(fmt.Sprintf("Failed to create revise item. %s", err))
-					return nil
-				default:
-					log.Error("failed to create revise item", "error", err)
-					return err
-				}
-			}
-
-			ctx.Send(fmt.Sprintf("Revise item created: \nTitle: %s\nDescription: %s", reviseItem.Name, reviseItem.Description))
-
-			return nil
-		})
-
 		return nil
 	})
+
+	wg.Wait()
+
+	ctx.Send("Enter the description of the item you want to revise.", &tb.ReplyMarkup{
+		ResizeKeyboard: true,
+		ForceReply:     true,
+	})
+
+	ctx.Respond(&tb.CallbackResponse{
+		Text: "Enter the description of the item you want to revise.",
+	})
+
+	wg.Add(1)
+	ctx.Bot().Handle(tb.OnText, func(ctx tb.Context) error {
+		defer wg.Done()
+		description = ctx.Text()
+		return nil
+	})
+
+	wg.Wait()
+
+	user, err := b.UserService.GetByChatID(context.Background(), ctx.Chat().ID)
+	if err != nil {
+		switch {
+		case errors.Is(err, service.ErrNotFound):
+			ctx.Send("You are not registered. Please use /start command to register.")
+			return nil
+		default:
+			log.Error("failed to get user by chat ID", "error", err)
+			return err
+		}
+	}
+
+	reviseItem, err := b.ReviseService.Create(
+		context.Background(),
+		domain.CreateReviseItemDTO{
+			UserID:      user.ID.String(),
+			Name:        name,
+			Description: description,
+		},
+	)
+	if err != nil {
+		switch {
+		case errors.Is(err, service.ErrInvalidArgument):
+			ctx.Send(fmt.Sprintf("Failed to create revise item. %s", err))
+			return nil
+		default:
+			log.Error("failed to create revise item", "error", err)
+			return err
+		}
+	}
+
+	ctx.Send(fmt.Sprintf("Revise item created: \nTitle: %s\nDescription: %s", reviseItem.Name, reviseItem.Description))
 
 	return nil
 }
