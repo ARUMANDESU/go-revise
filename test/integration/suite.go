@@ -3,7 +3,6 @@ package integration
 import (
 	"database/sql"
 	"embed"
-	"log"
 	"log/slog"
 	"os"
 	"path/filepath"
@@ -35,6 +34,7 @@ func NewReviseSuite(t *testing.T) (*ReviseSuite, func()) {
 			T:          t,
 			LogHandler: handler,
 			Service: revisesvc.NewRevise(log,
+				nil,
 				revisesvc.ReviseStorages{
 					ReviseProvider: storage,
 					ReviseManager:  storage,
@@ -92,7 +92,7 @@ func getDataSource(t *testing.T, fileName string) string {
 	if _, err := os.Stat(filePath); os.IsNotExist(err) {
 		file, err := os.Create(filePath)
 		if err != nil {
-			log.Fatal(err)
+			t.Fatal(err)
 		}
 		file.Close()
 	}

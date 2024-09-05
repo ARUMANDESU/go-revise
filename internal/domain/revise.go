@@ -65,6 +65,13 @@ func (r ReviseItem) PartialUpdate(dto UpdateReviseItemDTO) ReviseItem {
 	return r
 }
 
+func (r ReviseItem) NextIteration() ReviseItem {
+	r.Iteration++
+	r.LastRevisedAt = time.Now()
+	r.NextRevisionAt = time.Now().Add(time.Duration(IntervalMap[r.Iteration]))
+	return r
+}
+
 // StringArray is a custom type to handle string array in the database,
 // because sqlite does not support array types
 type StringArray []string

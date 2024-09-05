@@ -2,7 +2,9 @@ package domain
 
 import (
 	"database/sql/driver"
+	"fmt"
 	"testing"
+	"time"
 
 	"github.com/gofrs/uuid"
 	"github.com/stretchr/testify/assert"
@@ -218,6 +220,46 @@ func TestReviseItem_PartialUpdate(t *testing.T) {
 			} else {
 				assert.Equal(t, revise.UpdatedAt, updated.UpdatedAt)
 			}
+		})
+	}
+}
+
+func TestReviseItem_NextIteration(t *testing.T) {
+	tests := make([]struct {
+		name     string
+		revise   ReviseItem
+		expected ReviseItem
+	}, 0, 5)
+
+	for i := 0; i < 5; i++ {
+		testCase := struct {
+			name     string
+			revise   ReviseItem
+			expected ReviseItem
+		}{
+			name: fmt.Sprintf("iteration %d", i),
+			revise: ReviseItem{
+				Iteration:      ReviseIteration(i),
+				LastRevisedAt:  time.Now(),
+				NextRevisionAt: time.Now().Add(time.Duration(IntervalMap[ReviseIteration(i)])),
+			},
+			expected: ReviseItem{
+				Iteration:      ReviseIteration(i + 1),
+				LastRevisedAt:  time.Now(),
+				NextRevisionAt: time.Now().Add(time.Duration(IntervalMap[ReviseIteration(i+1)])),
+			},
+		}
+
+		tests = append(tests, testCase)
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			updated := tt.revise.NextIteration()
+
+			assert.Equal(t, tt.expected.Iteration, updated.Iteration)
+			assert.WithinDuration(t, tt.expected.LastRevisedAt, updated.LastRevisedAt, time.Second)
+			assert.WithinDuration(t, tt.expected.NextRevisionAt, updated.NextRevisionAt, time.Second)
 		})
 	}
 }

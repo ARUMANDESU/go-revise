@@ -3,6 +3,7 @@ package revisesvc
 import (
 	"context"
 	"errors"
+	"sync"
 	"testing"
 
 	"github.com/ARUMANDESU/go-revise/internal/domain"
@@ -34,6 +35,7 @@ func NewSuite(t *testing.T) Suite {
 
 	return Suite{
 		service: NewRevise(logger.Plug(),
+			&sync.WaitGroup{},
 			ReviseStorages{
 				ReviseProvider: mockReviseProvider,
 				ReviseManager:  mockReviseManager,

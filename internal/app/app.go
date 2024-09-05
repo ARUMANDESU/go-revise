@@ -3,6 +3,7 @@ package app
 import (
 	"github.com/ARUMANDESU/go-revise/internal/cron"
 	"log/slog"
+	"sync"
 
 	"github.com/ARUMANDESU/go-revise/internal/config"
 	revisesvc "github.com/ARUMANDESU/go-revise/internal/service/revise"
@@ -12,18 +13,21 @@ import (
 )
 
 type App struct {
+	wg        *sync.WaitGroup
 	bot       *tgbot.Bot
 	scheduler *cron.Cron
 }
 
 func NewApp(cfg config.Config, logger *slog.Logger) *App {
 
+	var wg sync.WaitGroup
+
 	sqliteDB, err := sqlite.NewStorage(cfg.DatabaseURL)
 	if err != nil {
 		panic(err)
 	}
 
-	reviseService := revisesvc.NewRevise(logger, revisesvc.ReviseStorages{ReviseProvider: sqliteDB, ReviseManager: sqliteDB, UserProvider: sqliteDB})
+	reviseService := revisesvc.NewRevise(logger, &wg, revisesvc.ReviseStorages{ReviseProvider: sqliteDB, ReviseManager: sqliteDB, UserProvider: sqliteDB})
 	userService := usersvc.NewService(logger, sqliteDB, sqliteDB)
 
 	bot, err := tgbot.NewBot(cfg.Telegram, logger, &reviseService, &userService)
@@ -49,4 +53,6 @@ func (a *App) Start() {
 
 func (a *App) Stop() {
 	a.bot.Stop()
+	// wait for all goroutines to finish
+	a.wg.Wait()
 }

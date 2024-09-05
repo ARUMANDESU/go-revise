@@ -5,6 +5,7 @@ import (
 	"errors"
 	"fmt"
 	"log/slog"
+	"sync"
 	"time"
 
 	"github.com/ARUMANDESU/go-revise/internal/domain"
@@ -43,12 +44,14 @@ type ReviseStorages struct {
 
 type Revise struct {
 	log *slog.Logger
+	wg  *sync.WaitGroup
 	ReviseStorages
 }
 
-func NewRevise(log *slog.Logger, storages ReviseStorages) Revise {
+func NewRevise(log *slog.Logger, wg *sync.WaitGroup, storages ReviseStorages) Revise {
 	return Revise{
 		log:            log,
+		wg:             wg,
 		ReviseStorages: storages,
 	}
 }
@@ -260,6 +263,22 @@ func (r Revise) Scan(ctx context.Context) ([]domain.ScheduledItem, error) {
 		r.log.Error(domain.WrapErrorWithOp(err, op, "failed to get scheduled items").Error())
 		return nil, service.ErrInternal
 	}
+
+	for i := 0; i < len(scheduledItems); i++ {
+		scheduledItems[i].ReviseItem = scheduledItems[i].ReviseItem.NextIteration()
+	}
+
+	r.wg.Add(1)
+	go func(items []domain.ScheduledItem) {
+		defer r.wg.Done()
+		for _, item := range items {
+			reviseItem := item.ReviseItem
+			if err := r.ReviseManager.UpdateRevise(ctx, reviseItem); err != nil {
+				r.log.Error(domain.WrapErrorWithOp(err, op, "failed to update revise").Error())
+				continue
+			}
+		}
+	}(scheduledItems)
 
 	return scheduledItems, nil
 }
