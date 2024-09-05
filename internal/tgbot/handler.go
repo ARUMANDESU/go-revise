@@ -67,6 +67,7 @@ func (b *Bot) handleHelpCommand(ctx tb.Context) error {
 
 	return nil
 }
+
 func (b *Bot) handleReviseMenuCommand(ctx tb.Context) error {
 	const op = "tgbot.Bot.handler.handleReviseMenuCommand"
 	log := b.log.With("op", op)
@@ -206,7 +207,6 @@ func (b *Bot) handleReviseCreateCommand(ctx tb.Context) error {
 
 	ctx.Send("Enter the title of the item you want to revise.", &tb.ReplyMarkup{
 		ResizeKeyboard: true,
-		ForceReply:     true,
 	})
 
 	ctx.Respond(&tb.CallbackResponse{
@@ -230,7 +230,6 @@ func (b *Bot) handleReviseCreateCommand(ctx tb.Context) error {
 
 	ctx.Send("Enter the description of the item you want to revise.", &tb.ReplyMarkup{
 		ResizeKeyboard: true,
-		ForceReply:     true,
 	})
 
 	ctx.Respond(&tb.CallbackResponse{
@@ -277,7 +276,18 @@ func (b *Bot) handleReviseCreateCommand(ctx tb.Context) error {
 		}
 	}
 
-	ctx.Send(fmt.Sprintf("Revise item created: \nTitle: %s\nDescription: %s", reviseItem.Name, reviseItem.Description))
+	ctx.Send(
+		fmt.Sprintf("Revise item created: \nTitle: %s\nDescription: %s", reviseItem.Name, reviseItem.Description),
+		&tb.ReplyMarkup{
+			ResizeKeyboard: true,
+			InlineKeyboard: [][]tb.InlineButton{
+				{
+					ReviseMenuButtonInline,
+					ReviseCreateButtonInline,
+				},
+			},
+		},
+	)
 
 	return nil
 }

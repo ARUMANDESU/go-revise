@@ -10,7 +10,7 @@ import (
 	"github.com/ARUMANDESU/go-revise/internal/storage"
 )
 
-func (s Storage) GetRevise(ctx context.Context, id string) (domain.ReviseItem, error) {
+func (s *Storage) GetRevise(ctx context.Context, id string) (domain.ReviseItem, error) {
 	const op = "storage.sqlite.revise.getRevise"
 
 	query := `
@@ -43,7 +43,7 @@ func (s Storage) GetRevise(ctx context.Context, id string) (domain.ReviseItem, e
 	return revise, nil
 }
 
-func (s Storage) ListRevises(ctx context.Context, dto domain.ListReviseItemDTO) ([]domain.ReviseItem, domain.PaginationMetadata, error) {
+func (s *Storage) ListRevises(ctx context.Context, dto domain.ListReviseItemDTO) ([]domain.ReviseItem, domain.PaginationMetadata, error) {
 	const op = "storage.sqlite.revise.listRevises"
 
 	query := fmt.Sprintf(`
@@ -85,7 +85,7 @@ func (s Storage) ListRevises(ctx context.Context, dto domain.ListReviseItemDTO) 
 
 }
 
-func (s Storage) CreateRevise(ctx context.Context, revise domain.ReviseItem) error {
+func (s *Storage) CreateRevise(ctx context.Context, revise domain.ReviseItem) error {
 	const op = "storage.sqlite.revise.createRevise"
 
 	query := `
@@ -113,7 +113,7 @@ func (s Storage) CreateRevise(ctx context.Context, revise domain.ReviseItem) err
 	return nil
 }
 
-func (s Storage) UpdateRevise(ctx context.Context, revise domain.ReviseItem) error {
+func (s *Storage) UpdateRevise(ctx context.Context, revise domain.ReviseItem) error {
 	const op = "storage.sqlite.revise.updateRevise"
 
 	query := `UPDATE revise_items
@@ -141,7 +141,7 @@ func (s Storage) UpdateRevise(ctx context.Context, revise domain.ReviseItem) err
 	return nil
 }
 
-func (s Storage) DeleteRevise(ctx context.Context, id string) error {
+func (s *Storage) DeleteRevise(ctx context.Context, id string) error {
 	const op = "storage.sqlite.revise.deleteRevise"
 
 	query := `DELETE FROM revise_items WHERE id = ?`
@@ -160,4 +160,40 @@ func (s Storage) DeleteRevise(ctx context.Context, id string) error {
 	}
 
 	return nil
+}
+
+func (s *Storage) GetScheduledItems(ctx context.Context) ([]domain.ScheduledItem, error) {
+	const op = "storage.sqlite.revise.getScheduledItems"
+
+	query := `
+		SELECT ri.id, u.id, u.telegram_id, ri.name, ri.description, ri.tags, ri.iteration, ri.created_at, ri.updated_at, ri.last_rivised_at, ri.next_revision_at 
+		FROM revise_items ri JOIN users u ON ri.user_id = u.id
+		WHERE ri.next_revision_at <= datetime('now','+3 Hour');
+	`
+
+	rows, err := s.DB.QueryContext(ctx, query)
+	if err != nil {
+		if errors.Is(err, sql.ErrNoRows) {
+			return nil, storage.ErrNotFound
+		}
+		return nil, domain.WrapErrorWithOp(err, op, "failed query to get scheduled items")
+	}
+	defer rows.Close()
+
+	var scheduledItems []domain.ScheduledItem
+	for rows.Next() {
+		var scheduled domain.ScheduledItem
+		err := rows.Scan(
+			&scheduled.ReviseItem.ID, &scheduled.User.ID, &scheduled.User.TelegramID,
+			&scheduled.ReviseItem.Name, &scheduled.ReviseItem.Description, &scheduled.ReviseItem.Tags, &scheduled.ReviseItem.Iteration,
+			&scheduled.ReviseItem.CreatedAt, &scheduled.ReviseItem.UpdatedAt, &scheduled.ReviseItem.LastRevisedAt, &scheduled.ReviseItem.NextRevisionAt,
+		)
+		if err != nil {
+			return nil, domain.WrapErrorWithOp(err, op, "failed to get scheduled items")
+		}
+
+		scheduledItems = append(scheduledItems, scheduled)
+	}
+
+	return scheduledItems, nil
 }

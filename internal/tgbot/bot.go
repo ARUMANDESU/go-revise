@@ -2,6 +2,8 @@ package tgbot
 
 import (
 	"context"
+	"fmt"
+	"github.com/ARUMANDESU/go-revise/pkg/logger"
 	"log/slog"
 	"net/http"
 	"strings"
@@ -122,4 +124,24 @@ func (b *Bot) Start() error {
 func (b *Bot) Stop() {
 	b.bot.Stop()
 	b.httpServer.Close()
+}
+
+func (b *Bot) SendMessage(chatID int64, reviseItem domain.ReviseItem) error {
+	const op = "tgbot.Bot.SendMessage"
+	log := b.log.With("op", op)
+
+	var message strings.Builder
+	message.WriteString("You have a review item to revise\n")
+	message.WriteString("Name: " + reviseItem.Name + "\n")
+	message.WriteString("Description: " + reviseItem.Description + "\n")
+	message.WriteString("Tags: " + strings.Join(reviseItem.Tags, ", ") + "\n")
+	message.WriteString(fmt.Sprintf("Iteration: %d\n", reviseItem.Iteration))
+
+	_, err := b.bot.Send(&tb.Chat{ID: chatID}, message.String())
+	if err != nil {
+		log.Error("failed to send message", logger.Err(err))
+		return err
+	}
+
+	return nil
 }

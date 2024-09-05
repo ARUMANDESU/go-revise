@@ -1,4 +1,4 @@
-<!-- Improved compatibility of back to top link: See: https://github.com/othneildrew/Best-README-Template/pull/73 -->
+V<!-- Improved compatibility of back to top link: See: https://github.com/othneildrew/Best-README-Template/pull/73 -->
 <a id="readme-top"></a>
 
 
@@ -114,6 +114,10 @@ The bot uses the [Spaced repetition](https://en.wikipedia.org/wiki/Spaced_repeti
 
 <p align="right">(<a href="#readme-top">back to top</a>)</p>
 
+
+
+## Notification scheduling logic
+![Notification scheduling logic](./assets/notification_logic.png)
 
 
 

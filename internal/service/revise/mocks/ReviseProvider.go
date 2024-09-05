@@ -42,6 +42,36 @@ func (_m *ReviseProvider) GetRevise(ctx context.Context, id string) (domain.Revi
 	return r0, r1
 }
 
+// GetScheduledItems provides a mock function with given fields: ctx
+func (_m *ReviseProvider) GetScheduledItems(ctx context.Context) ([]domain.ScheduledItem, error) {
+	ret := _m.Called(ctx)
+
+	if len(ret) == 0 {
+		panic("no return value specified for GetScheduledItems")
+	}
+
+	var r0 []domain.ScheduledItem
+	var r1 error
+	if rf, ok := ret.Get(0).(func(context.Context) ([]domain.ScheduledItem, error)); ok {
+		return rf(ctx)
+	}
+	if rf, ok := ret.Get(0).(func(context.Context) []domain.ScheduledItem); ok {
+		r0 = rf(ctx)
+	} else {
+		if ret.Get(0) != nil {
+			r0 = ret.Get(0).([]domain.ScheduledItem)
+		}
+	}
+
+	if rf, ok := ret.Get(1).(func(context.Context) error); ok {
+		r1 = rf(ctx)
+	} else {
+		r1 = ret.Error(1)
+	}
+
+	return r0, r1
+}
+
 // ListRevises provides a mock function with given fields: ctx, dto
 func (_m *ReviseProvider) ListRevises(ctx context.Context, dto domain.ListReviseItemDTO) ([]domain.ReviseItem, domain.PaginationMetadata, error) {
 	ret := _m.Called(ctx, dto)

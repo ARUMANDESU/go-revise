@@ -1,6 +1,7 @@
 package app
 
 import (
+	"github.com/ARUMANDESU/go-revise/internal/cron"
 	"log/slog"
 
 	"github.com/ARUMANDESU/go-revise/internal/config"
@@ -11,7 +12,8 @@ import (
 )
 
 type App struct {
-	bot *tgbot.Bot
+	bot       *tgbot.Bot
+	scheduler *cron.Cron
 }
 
 func NewApp(cfg config.Config, logger *slog.Logger) *App {
@@ -29,13 +31,20 @@ func NewApp(cfg config.Config, logger *slog.Logger) *App {
 		panic(err)
 	}
 
+	scheduler, err := cron.New(logger, bot, reviseService)
+	if err != nil {
+		panic(err)
+	}
+
 	return &App{
-		bot: bot,
+		bot:       bot,
+		scheduler: scheduler,
 	}
 }
 
 func (a *App) Start() {
-	a.bot.Start()
+	go a.bot.Start()
+	a.scheduler.Start()
 }
 
 func (a *App) Stop() {

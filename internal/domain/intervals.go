@@ -9,6 +9,8 @@ type ReviseInterval time.Duration
 type ReviseIteration uint
 
 const (
+	OneMinute      ReviseInterval = ReviseInterval(1 * time.Minute)
+	TenMinutes     ReviseInterval = ReviseInterval(10 * time.Minute)
 	OneDay         ReviseInterval = ReviseInterval(24 * time.Hour)
 	ThreeDays      ReviseInterval = ReviseInterval(3 * 24 * time.Hour)
 	OneWeek        ReviseInterval = ReviseInterval(7 * 24 * time.Hour)
@@ -29,6 +31,7 @@ const (
 )
 
 var IntervalMap = map[ReviseIteration]ReviseInterval{
+	//0:  OneMinute, // TODO: change to 1 minute, for testing purposes
 	0:  OneDay,
 	1:  OneDay,
 	2:  ThreeDays,

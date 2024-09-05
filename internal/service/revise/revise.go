@@ -19,6 +19,7 @@ import (
 type ReviseProvider interface {
 	GetRevise(ctx context.Context, id string) (domain.ReviseItem, error)
 	ListRevises(ctx context.Context, dto domain.ListReviseItemDTO) ([]domain.ReviseItem, domain.PaginationMetadata, error)
+	GetScheduledItems(ctx context.Context) ([]domain.ScheduledItem, error)
 }
 
 //go:generate mockery --name ReviseManager --output mocks
@@ -152,8 +153,6 @@ func (r Revise) Create(ctx context.Context, dto domain.CreateReviseItemDTO) (dom
 		NextRevisionAt: time.Now().Add(time.Duration(domain.IntervalMap[0])),
 	}
 
-	// TODO: create reminder
-
 	if err := r.ReviseManager.CreateRevise(ctx, reviseItem); err != nil {
 		r.log.Error(domain.WrapErrorWithOp(err, op, "failed to create revise").Error())
 		return domain.ReviseItem{}, service.ErrInternal
@@ -248,4 +247,19 @@ func (r Revise) Delete(ctx context.Context, id string, userID string) (domain.Re
 	}
 
 	return reviseItem, nil
+}
+
+func (r Revise) Scan(ctx context.Context) ([]domain.ScheduledItem, error) {
+	const op = "service.revise.scan"
+
+	scheduledItems, err := r.ReviseProvider.GetScheduledItems(ctx)
+	if err != nil {
+		if errors.Is(err, storage.ErrNotFound) {
+			return nil, service.ErrNotFound
+		}
+		r.log.Error(domain.WrapErrorWithOp(err, op, "failed to get scheduled items").Error())
+		return nil, service.ErrInternal
+	}
+
+	return scheduledItems, nil
 }
