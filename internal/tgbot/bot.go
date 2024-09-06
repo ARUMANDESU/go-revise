@@ -137,7 +137,22 @@ func (b *Bot) SendMessage(chatID int64, reviseItem domain.ReviseItem) error {
 	message.WriteString("Tags: " + strings.Join(reviseItem.Tags, ", ") + "\n")
 	message.WriteString(fmt.Sprintf("Iteration: %d\n", reviseItem.Iteration))
 
-	_, err := b.bot.Send(&tb.Chat{ID: chatID}, message.String())
+	prevButton := tb.InlineButton{Text: domain.IntervalStringMap[domain.IntervalMap[reviseItem.Iteration-1]], Unique: "prev"}
+	nextButton := tb.InlineButton{Text: domain.IntervalStringMap[domain.IntervalMap[reviseItem.Iteration+1]], Unique: "next"}
+
+	_, err := b.bot.Send(
+		&tb.Chat{ID: chatID},
+		message.String(),
+		&tb.ReplyMarkup{InlineKeyboard: [][]tb.InlineButton{
+			{
+				ResetButton,
+			},
+			{
+				prevButton,
+				nextButton,
+			},
+		}},
+	)
 	if err != nil {
 		log.Error("failed to send message", logger.Err(err))
 		return err

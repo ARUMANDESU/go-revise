@@ -8,6 +8,8 @@ import (
 	"time"
 )
 
+const ScanInterval = time.Minute
+
 type TGNotifier interface {
 	SendMessage(chatID int64, reviseItem domain.ReviseItem) error
 }
@@ -75,7 +77,7 @@ func (c *Cron) Start() {
 
 	log.Info("Starting cron job")
 	job, err := c.scheduler.NewJob(
-		gocron.DurationJob(time.Hour*3),
+		gocron.DurationJob(ScanInterval),
 		gocron.NewTask(c.scanAndNotify),
 	)
 	if err != nil {

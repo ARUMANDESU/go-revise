@@ -165,10 +165,12 @@ func (s *Storage) DeleteRevise(ctx context.Context, id string) error {
 func (s *Storage) GetScheduledItems(ctx context.Context) ([]domain.ScheduledItem, error) {
 	const op = "storage.sqlite.revise.getScheduledItems"
 
+	// +8 Hour because sqlite does not have timezone support
+	// +5 is for GMT+5 and  +3 is for scanning 3 hours before the next revision
 	query := `
 		SELECT ri.id, u.id, u.telegram_id, ri.name, ri.description, ri.tags, ri.iteration, ri.created_at, ri.updated_at, ri.last_rivised_at, ri.next_revision_at 
 		FROM revise_items ri JOIN users u ON ri.user_id = u.id
-		WHERE ri.next_revision_at <= datetime('now','+3 Hour');
+		WHERE ri.next_revision_at <= datetime('now','+8 Hour'); 
 	`
 
 	rows, err := s.DB.QueryContext(ctx, query)

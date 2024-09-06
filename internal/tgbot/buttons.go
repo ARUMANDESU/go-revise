@@ -17,4 +17,17 @@ var (
 	// Revise list buttons
 	NextButton = tb.InlineButton{Text: "next", Unique: "next"}
 	PrevButton = tb.InlineButton{Text: "prev", Unique: "prev"}
+
+	// Revise item buttons
+	ResetButton  = tb.InlineButton{Text: "reset", Unique: "reset"}
+	BackButton   = tb.InlineButton{Text: "back", Unique: "back"}
+	DeleteButton = tb.InlineButton{Text: "delete", Unique: "delete"}
+	EditButton   = tb.InlineButton{Text: "edit", Unique: "edit"}
+)
+
+var (
+	menuButtons = []tb.InlineButton{
+		ReviseListButtonInline,
+		ReviseCreateButtonInline,
+	}
 )

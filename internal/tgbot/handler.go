@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"log/slog"
 	"strings"
 	"sync"
 
@@ -96,6 +97,8 @@ func (b *Bot) handleReviseListCommand(ctx tb.Context) error {
 		currentPage = 1
 		pageSize    = 5
 		lastPage    = 1
+
+		pageInfoButton tb.InlineButton
 	)
 
 	paginationButtons := func() []tb.InlineButton {
@@ -107,8 +110,8 @@ func (b *Bot) handleReviseListCommand(ctx tb.Context) error {
 			buttons = append(buttons, EmptyButtonInline)
 		}
 
-		buttons = append(buttons, tb.InlineButton{Text: fmt.Sprintf("%d/%d", currentPage, lastPage)})
-
+		pageInfoButton = tb.InlineButton{Text: fmt.Sprintf("%d/%d", currentPage, lastPage), Unique: "refresh"}
+		buttons = append(buttons, pageInfoButton)
 		if currentPage < lastPage {
 			buttons = append(buttons, NextButton)
 		} else {
@@ -117,6 +120,7 @@ func (b *Bot) handleReviseListCommand(ctx tb.Context) error {
 
 		return buttons
 	}
+	var itemButtons [][]tb.InlineButton
 
 	displayList := func(pagination *domain.Pagination, sort *domain.Sort) error {
 		reviseList, metadata, err := b.ReviseService.List(
@@ -147,7 +151,20 @@ func (b *Bot) handleReviseListCommand(ctx tb.Context) error {
 		currentPage, lastPage = metadata.CurrentPage, metadata.LastPage
 
 		log.Debug("Revise items listed", "count", len(reviseList))
-		message := DisplayReviewItemsMarkdown(reviseList)
+
+		message := DisplayReviewItemsMarkdown(reviseList, (currentPage-1)*pageSize)
+		itemButtons = b.provideItemButtons(ctx, reviseList, (currentPage-1)*pageSize)
+		log.Debug("Item buttons provided", slog.Any("itemButtons", itemButtons))
+		b.setItemButtonsHandler(ctx, reviseList, itemButtons)
+
+		buttons := append(
+			itemButtons,
+			[]tb.InlineButton{
+				ReviseMenuButtonInline,
+				ReviseCreateButtonInline,
+			},
+			paginationButtons(),
+		)
 
 		log.Debug("Sending revise items list")
 
@@ -157,13 +174,7 @@ func (b *Bot) handleReviseListCommand(ctx tb.Context) error {
 			},
 			&tb.ReplyMarkup{
 				ResizeKeyboard: true,
-				InlineKeyboard: [][]tb.InlineButton{
-					{
-						ReviseMenuButtonInline,
-						ReviseCreateButtonInline,
-					},
-					paginationButtons(),
-				},
+				InlineKeyboard: buttons,
 			})
 
 		log.Debug("Revise items list sent")
@@ -172,7 +183,10 @@ func (b *Bot) handleReviseListCommand(ctx tb.Context) error {
 	}
 
 	// initial list
-	displayList(domain.NewPagination(1, pageSize), domain.DefaultSort())
+	err := displayList(domain.NewPagination(1, pageSize), domain.DefaultSort())
+	if err != nil {
+		return err
+	}
 
 	ctx.Bot().Handle(&NextButton, func(ctx tb.Context) error {
 		if currentPage == lastPage {
@@ -180,7 +194,10 @@ func (b *Bot) handleReviseListCommand(ctx tb.Context) error {
 			return nil
 		}
 
-		displayList(domain.NewPagination(currentPage+1, pageSize), domain.DefaultSort())
+		err = displayList(domain.NewPagination(currentPage+1, pageSize), domain.DefaultSort())
+		if err != nil {
+			return err
+		}
 
 		return nil
 	})
@@ -191,7 +208,30 @@ func (b *Bot) handleReviseListCommand(ctx tb.Context) error {
 			return nil
 		}
 
-		displayList(domain.NewPagination(currentPage-1, pageSize), domain.DefaultSort())
+		err = displayList(domain.NewPagination(currentPage-1, pageSize), domain.DefaultSort())
+		if err != nil {
+			return err
+		}
+
+		return nil
+	})
+
+	// Add a handler for the back button to return from review item to the list
+	ctx.Bot().Handle(&BackButton, func(ctx tb.Context) error {
+		err := displayList(domain.NewPagination(currentPage, pageSize), domain.DefaultSort())
+		if err != nil {
+			return err
+		}
+
+		return nil
+	})
+
+	// Add a handler for the refresh button to refresh the list
+	ctx.Bot().Handle(&pageInfoButton, func(ctx tb.Context) error {
+		err := displayList(domain.NewPagination(currentPage, pageSize), domain.DefaultSort())
+		if err != nil {
+			return err
+		}
 
 		return nil
 	})
@@ -290,4 +330,69 @@ func (b *Bot) handleReviseCreateCommand(ctx tb.Context) error {
 	)
 
 	return nil
+}
+
+func (b *Bot) ReviseItem(reviseID string, buttons [][]tb.InlineButton) func(ctx tb.Context) error {
+	const op = "tgbot.Bot.handler.ReviseItem"
+	log := b.log.With("op", op)
+
+	return func(ctx tb.Context) error {
+		log.Debug("Revise item command received", "reviseID", reviseID)
+
+		reviseItem, err := b.ReviseService.Get(context.Background(), reviseID)
+		if err != nil {
+			switch {
+			case errors.Is(err, service.ErrNotFound):
+				ctx.Send("Revise item not found.")
+				return nil
+			default:
+				log.Error("failed to get revise item", "error", err)
+				return nil
+			}
+		}
+
+		log.Debug("Revise item found", "reviseItem", reviseItem)
+
+		message := DisplayReviewItemMarkdown(reviseItem)
+		buttons = append(buttons, []tb.InlineButton{
+			ResetButton,
+			DeleteButton,
+			EditButton,
+		})
+
+		ctx.EditOrSend(message,
+			&tb.SendOptions{
+				ParseMode: tb.ModeMarkdown,
+			},
+			&tb.ReplyMarkup{
+				ResizeKeyboard: true,
+				InlineKeyboard: buttons,
+			},
+		)
+
+		ctx.Bot().Handle(&DeleteButton, func(ctx tb.Context) error {
+			user, err := b.UserService.GetByChatID(context.Background(), ctx.Chat().ID)
+			if err != nil {
+				switch {
+				case errors.Is(err, service.ErrNotFound):
+					ctx.Send("You are not registered. Please use /start command to register.")
+					return nil
+				default:
+					log.Error("failed to get user by chat ID", "error", err)
+					return err
+				}
+			}
+
+			_, err = b.ReviseService.Delete(context.Background(), reviseID, user.ID.String())
+			if err != nil {
+				log.Error("failed to delete revise item", "error", err)
+				return nil
+			}
+
+			ctx.Edit("Revise item deleted.", ctx.Message().ReplyMarkup)
+			return nil
+		})
+
+		return nil
+	}
 }

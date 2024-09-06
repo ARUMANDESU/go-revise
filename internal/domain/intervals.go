@@ -31,8 +31,8 @@ const (
 )
 
 var IntervalMap = map[ReviseIteration]ReviseInterval{
-	//0:  OneMinute, // TODO: change to 1 minute, for testing purposes
-	0:  OneDay,
+	0: OneMinute, // TODO: change to 1 minute, for testing purposes
+	//0:  OneDay,
 	1:  OneDay,
 	2:  ThreeDays,
 	3:  OneWeek,
@@ -50,4 +50,26 @@ var IntervalMap = map[ReviseIteration]ReviseInterval{
 	15: TwoYears,
 	16: ThreeYears,
 	17: FiveYears,
+}
+
+var IntervalStringMap = map[ReviseInterval]string{
+	OneMinute:      "1 minute",
+	TenMinutes:     "10 minutes",
+	OneDay:         "1 day",
+	ThreeDays:      "3 days",
+	OneWeek:        "1 week",
+	TwoWeeks:       "2 weeks",
+	ThreeWeeks:     "3 weeks",
+	OneMonth:       "1 month",
+	OneHalfMonth:   "1.5 months",
+	TwoMonths:      "2 months",
+	ThreeMonths:    "3 months",
+	FourMonths:     "4 months",
+	SixMonths:      "6 months",
+	NineMonths:     "9 months",
+	OneYear:        "1 year",
+	EighteenMonths: "1.5 years",
+	TwoYears:       "2 years",
+	ThreeYears:     "3 years",
+	FiveYears:      "5 years",
 }
