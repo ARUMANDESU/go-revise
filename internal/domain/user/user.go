@@ -44,8 +44,14 @@ func (u *User) UpdateSettings(settings Settings) {
 	u.settings = settings
 }
 
+func (u *User) ID() uuid.UUID {
+	return u.id
+}
+
 // Settings represents user settings.
 type Settings struct {
+	// ID is used to identify the settings in the database.
+	ID           uuid.UUID
 	Language     i18n.Language
 	ReminderTime ReminderTime
 }
@@ -74,5 +80,25 @@ func DefaultReminderTime() ReminderTime {
 	return ReminderTime{
 		Hour:   7,
 		Minute: 0,
+	}
+}
+
+// NewReminderTime creates a new reminder time.
+//
+//	hour maps to the 24-hour format, and minute is between 0-59.
+func NewReminderTime(hour, minute uint8) ReminderTime {
+	switch {
+	case hour > 23:
+		hour = 23
+	case hour < 0:
+		hour = 0
+	case minute > 59:
+		minute = 59
+	case minute < 0:
+		minute = 0
+	}
+	return ReminderTime{
+		Hour:   hour,
+		Minute: minute,
 	}
 }
