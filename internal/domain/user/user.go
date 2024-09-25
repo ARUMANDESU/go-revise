@@ -30,7 +30,7 @@ func NewUser(chatID TelegramID, options ...func(*User)) User {
 		chatID:    chatID,
 		createdAt: time.Now(),
 		updatedAt: time.Now(),
-		settings:  DefaultSettings,
+		settings:  DefaultSettings(),
 	}
 
 	for _, option := range options {
@@ -50,9 +50,12 @@ type Settings struct {
 	ReminderTime ReminderTime
 }
 
-var DefaultSettings = Settings{
-	Language:     i18n.DefaultLanguage,
-	ReminderTime: DefaultReminderTime,
+// DefaultSettings returns default user settings.
+func DefaultSettings() Settings {
+	return Settings{
+		Language:     i18n.DefaultLanguage,
+		ReminderTime: DefaultReminderTime(),
+	}
 }
 
 // ReminderTime represents a time of day when a reminder should be sent.
@@ -66,9 +69,10 @@ type ReminderTime struct {
 	Minute uint8 // 0-59
 }
 
-// DefaultReminderTime is a default time of day when a reminder should be sent.
-// It is 7:00 AM.
-var DefaultReminderTime = ReminderTime{
-	Hour:   7,
-	Minute: 0,
+// DefaultReminderTime returns a default reminder time.
+func DefaultReminderTime() ReminderTime {
+	return ReminderTime{
+		Hour:   7,
+		Minute: 0,
+	}
 }
