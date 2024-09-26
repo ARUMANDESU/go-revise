@@ -22,8 +22,12 @@ type Identifier interface {
 
 type UUID uuid.UUID
 
+func NewUserUUID() UUID {
+	return UUID(uuid.Must(uuid.NewV7()))
+}
+
 func (u UUID) GetID() interface{} {
-	return u
+	return uuid.UUID(u)
 }
 
 func (u UUID) GetIDAsString() string {
@@ -35,6 +39,10 @@ func (u UUID) IsValid() bool {
 }
 
 type TelegramID int64
+
+func NewTelegramID(id int64) TelegramID {
+	return TelegramID(id)
+}
 
 func (t TelegramID) GetID() interface{} {
 	return t

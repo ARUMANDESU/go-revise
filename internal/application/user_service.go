@@ -6,12 +6,15 @@ import (
 
 	"github.com/gofrs/uuid"
 
+	"golang.org/x/text/language"
+
 	domainUser "github.com/ARUMANDESU/go-revise/internal/domain/user"
-	"github.com/ARUMANDESU/go-revise/pkg/i18n"
 	"github.com/ARUMANDESU/go-revise/pkg/logutil"
 )
 
 // UserProvider handles the retrieval of user data.
+//
+//go:generate mockery --name UserProvider --output mocks/
 type UserProvider interface {
 	// GetUserByID returns a user by ID(UUID).
 	GetUserByID(ctx context.Context, id uuid.UUID) (domainUser.User, error)
@@ -20,6 +23,8 @@ type UserProvider interface {
 }
 
 // UserRepository handles the persistence of user data.
+//
+//go:generate mockery --name UserRepository --output mocks/
 type UserRepository interface {
 	// Save saves a user.
 	Save(ctx context.Context, u domainUser.User) error
@@ -28,9 +33,17 @@ type UserRepository interface {
 }
 
 type UserService struct {
-	log            slog.Logger
+	log            *slog.Logger
 	userRepository UserRepository
 	userProvider   UserProvider
+}
+
+func NewUserService(log *slog.Logger, userRepository UserRepository, userProvider UserProvider) UserService {
+	return UserService{
+		log:            log,
+		userRepository: userRepository,
+		userProvider:   userProvider,
+	}
 }
 
 func (s UserService) GetUserByID(ctx context.Context, id domainUser.Identifier) (domainUser.User, error) {
@@ -46,10 +59,10 @@ func (s UserService) GetUserByID(ctx context.Context, id domainUser.Identifier) 
 		err  error
 	)
 	switch id := id.(type) {
-	case domainUser.UUIDIdentifier:
-		user, err = s.userProvider.GetUserByID(ctx, id.UUID())
-	case domainUser.TelegramIDWrapper:
-		user, err = s.userProvider.GetUserByTelegramID(ctx, id.TelegramID())
+	case domainUser.UUID:
+		user, err = s.userProvider.GetUserByID(ctx, id.GetID().(uuid.UUID))
+	case domainUser.TelegramID:
+		user, err = s.userProvider.GetUserByTelegramID(ctx, id.GetID().(domainUser.TelegramID))
 	default:
 		return domainUser.User{}, domainUser.ErrInvalidIdentifier
 	}
@@ -63,7 +76,7 @@ func (s UserService) GetUserByID(ctx context.Context, id domainUser.Identifier) 
 
 type NewUserServiceParams struct {
 	ChatID       domainUser.TelegramID    `json:"chat_id"`
-	Language     i18n.Language            `json:"language"`
+	Language     language.Tag             `json:"language"`
 	ReminderTime *domainUser.ReminderTime `json:"reminder_time"`
 }
 
@@ -100,10 +113,10 @@ func (s UserService) UpdateUserSettings(ctx context.Context, id domainUser.Ident
 
 	var userID uuid.UUID
 	switch id := id.(type) {
-	case domainUser.UUIDIdentifier:
-		userID = id.UUID()
-	case domainUser.TelegramIDWrapper:
-		user, err := s.userProvider.GetUserByTelegramID(ctx, id.TelegramID())
+	case domainUser.UUID:
+		userID = id.GetID().(uuid.UUID)
+	case domainUser.TelegramID:
+		user, err := s.userProvider.GetUserByTelegramID(ctx, id.GetID().(domainUser.TelegramID))
 		if err != nil {
 			log.Error("failed to get domainUser", logutil.Err(err))
 			return err
