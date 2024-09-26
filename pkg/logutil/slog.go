@@ -29,9 +29,9 @@ func (e Env) Validate() bool {
 
 // Setup creates a new logger based on the environment
 //
-//	Note: the log file is stored in the user's cache directory,
-//	don't forget to call the cleanup function to close the log file
-//	Warning: panics if the log file cannot be created
+// WARNING: panics if any errors occur during setup
+//
+// REMINDER: don't forget to call the cleanup function to close the log file
 func Setup(env Env) (*slog.Logger, func()) {
 	ok := env.Validate()
 	if !ok {
@@ -45,23 +45,7 @@ func Setup(env Env) (*slog.Logger, func()) {
 		))
 	}
 
-	cacheDir, err := os.UserCacheDir()
-	if err != nil {
-		panic(fmt.Errorf("failed to get user cache directory: %w", err))
-	}
-
-	// Create the data directory if it does not exist
-	dataDir := filepath.Join(cacheDir, "go-revise")
-	err = os.MkdirAll(dataDir, os.FileMode(0755))
-	if err != nil {
-		panic(fmt.Errorf("failed to create data directory: %w", err))
-	}
-
-	// Open or create the log file
-	logFile, err := os.OpenFile(filepath.Join(dataDir, "log.txt"), os.O_CREATE|os.O_WRONLY|os.O_APPEND, 0666)
-	if err != nil {
-		panic(fmt.Errorf("failed to open log file: %w", err))
-	}
+	logFile := OpenFile("log.txt")
 
 	// Create a multi-writer to write to both stdout and the log file
 	multiWriter := io.MultiWriter(os.Stdout, logFile)
@@ -87,6 +71,32 @@ func Setup(env Env) (*slog.Logger, func()) {
 	}
 }
 
+// OpenFile opens or creates a log file in the user's cache directory and returns the file
+//
+// WARNING: panics if the log file cannot be created
+func OpenFile(fileName string) *os.File {
+	cacheDir, err := os.UserCacheDir()
+	if err != nil {
+		panic(fmt.Errorf("failed to get user cache directory: %w", err))
+	}
+
+	// Create the data directory if it does not exist
+	dataDir := filepath.Join(cacheDir, "go-revise")
+	err = os.MkdirAll(dataDir, os.FileMode(0755))
+	if err != nil {
+		panic(fmt.Errorf("failed to create data directory: %w", err))
+	}
+
+	// Open or create the log file
+	file, err := os.OpenFile(filepath.Join(dataDir, fileName), os.O_CREATE|os.O_WRONLY|os.O_APPEND, 0666)
+	if err != nil {
+		panic(fmt.Errorf("failed to open log file: %w", err))
+	}
+
+	return file
+}
+
+// Err returns an error attribute for logging
 func Err(err error) slog.Attr {
 	return slog.Attr{
 		Key:   "error",
