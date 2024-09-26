@@ -4,11 +4,8 @@ import (
 	"time"
 
 	"github.com/gofrs/uuid"
-
-	"github.com/ARUMANDESU/go-revise/pkg/i18n"
+	"golang.org/x/text/language"
 )
-
-type TelegramID int64
 
 type User struct {
 	id        uuid.UUID
@@ -26,7 +23,7 @@ func WithSettings(settings Settings) func(*User) {
 
 func NewUser(chatID TelegramID, options ...func(*User)) User {
 	u := User{
-		id:        uuid.Must(uuid.NewV4()),
+		id:        NewUserID(),
 		chatID:    chatID,
 		createdAt: time.Now(),
 		updatedAt: time.Now(),
@@ -48,18 +45,22 @@ func (u *User) ID() uuid.UUID {
 	return u.id
 }
 
+func NewUserID() uuid.UUID {
+	return uuid.Must(uuid.NewV7())
+}
+
 // Settings represents user settings.
 type Settings struct {
 	// ID is used to identify the settings in the database.
 	ID           uuid.UUID
-	Language     i18n.Language
+	Language     language.Tag
 	ReminderTime ReminderTime
 }
 
 // DefaultSettings returns default user settings.
 func DefaultSettings() Settings {
 	return Settings{
-		Language:     i18n.DefaultLanguage,
+		Language:     language.English,
 		ReminderTime: DefaultReminderTime(),
 	}
 }

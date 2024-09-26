@@ -12,54 +12,38 @@ var (
 )
 
 type Identifier interface {
-	// ID returns the identifier.
-	ID() string
-	// IsValid returns true if the identifier is valid.
+	// GetID returns the identifier as an interface{} to allow for both UUID and TelegramID.
+	GetID() interface{}
+	// GetIDAsString returns the identifier as a string.
+	GetIDAsString() string
+	// IsValid checks if the identifier is valid.
 	IsValid() bool
 }
 
-type UUIDIdentifier struct {
-	id uuid.UUID
+type UUID uuid.UUID
+
+func (u UUID) GetID() interface{} {
+	return u
 }
 
-func (i UUIDIdentifier) ID() string {
-	return i.id.String()
+func (u UUID) GetIDAsString() string {
+	return uuid.UUID(u).String()
 }
 
-func (i UUIDIdentifier) UUID() uuid.UUID {
-	return i.id
+func (u UUID) IsValid() bool {
+	return uuid.UUID(u) != uuid.Nil
 }
 
-func (i UUIDIdentifier) IsValid() bool {
-	return i.id != uuid.Nil
+type TelegramID int64
+
+func (t TelegramID) GetID() interface{} {
+	return t
 }
 
-func NewUUIDIdentifier(stringID string) (UUIDIdentifier, error) {
-	// Parse the string into a UUID.
-	id, err := uuid.FromString(stringID)
-	if err != nil {
-		return UUIDIdentifier{}, err
-	}
-
-	return UUIDIdentifier{id: id}, nil
+func (t TelegramID) GetIDAsString() string {
+	return strconv.FormatInt(int64(t), 10)
 }
 
-type TelegramIDWrapper struct {
-	telegramID TelegramID
-}
-
-func (i TelegramIDWrapper) ID() string {
-	return strconv.FormatInt(int64(i.telegramID), 10)
-}
-
-func (i TelegramIDWrapper) IsValid() bool {
-	return i.telegramID != 0
-}
-
-func (i TelegramIDWrapper) TelegramID() TelegramID {
-	return i.telegramID
-}
-
-func NewTelegramIDWrapper(telegramID TelegramID) TelegramIDWrapper {
-	return TelegramIDWrapper{telegramID: telegramID}
+func (t TelegramID) IsValid() bool {
+	return t != 0
 }
