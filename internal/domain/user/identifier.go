@@ -12,10 +12,10 @@ var (
 )
 
 type Identifier interface {
-	// GetID returns the identifier as an interface{} to allow for both UUID and TelegramID.
-	GetID() interface{}
-	// GetIDAsString returns the identifier as a string.
-	GetIDAsString() string
+	// ID returns the identifier as an interface{} to allow for both UUID and TelegramID.
+	ID() interface{}
+	// AsString returns the identifier as a string.
+	AsString() string
 	// IsValid checks if the identifier is valid.
 	IsValid() bool
 }
@@ -26,11 +26,11 @@ func NewUserUUID() UUID {
 	return UUID(uuid.Must(uuid.NewV7()))
 }
 
-func (u UUID) GetID() interface{} {
+func (u UUID) ID() interface{} {
 	return uuid.UUID(u)
 }
 
-func (u UUID) GetIDAsString() string {
+func (u UUID) AsString() string {
 	return uuid.UUID(u).String()
 }
 
@@ -44,11 +44,11 @@ func NewTelegramID(id int64) TelegramID {
 	return TelegramID(id)
 }
 
-func (t TelegramID) GetID() interface{} {
+func (t TelegramID) ID() interface{} {
 	return t
 }
 
-func (t TelegramID) GetIDAsString() string {
+func (t TelegramID) AsString() string {
 	return strconv.FormatInt(int64(t), 10)
 }
 

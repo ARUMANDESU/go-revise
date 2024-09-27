@@ -60,9 +60,9 @@ func (s UserService) GetUserByID(ctx context.Context, id domainUser.Identifier) 
 	)
 	switch id := id.(type) {
 	case domainUser.UUID:
-		user, err = s.userProvider.GetUserByID(ctx, id.GetID().(uuid.UUID))
+		user, err = s.userProvider.GetUserByID(ctx, id.ID().(uuid.UUID))
 	case domainUser.TelegramID:
-		user, err = s.userProvider.GetUserByTelegramID(ctx, id.GetID().(domainUser.TelegramID))
+		user, err = s.userProvider.GetUserByTelegramID(ctx, id.ID().(domainUser.TelegramID))
 	default:
 		return domainUser.User{}, domainUser.ErrInvalidIdentifier
 	}
@@ -114,9 +114,9 @@ func (s UserService) UpdateUserSettings(ctx context.Context, id domainUser.Ident
 	var userID uuid.UUID
 	switch id := id.(type) {
 	case domainUser.UUID:
-		userID = id.GetID().(uuid.UUID)
+		userID = id.ID().(uuid.UUID)
 	case domainUser.TelegramID:
-		user, err := s.userProvider.GetUserByTelegramID(ctx, id.GetID().(domainUser.TelegramID))
+		user, err := s.userProvider.GetUserByTelegramID(ctx, id.ID().(domainUser.TelegramID))
 		if err != nil {
 			log.Error("failed to get domainUser", logutil.Err(err))
 			return err
