@@ -6,6 +6,7 @@ import (
 
 	"github.com/clarify/subtest"
 	"github.com/stretchr/testify/mock"
+	"golang.org/x/text/language"
 
 	"github.com/ARUMANDESU/go-revise/internal/application"
 	"github.com/ARUMANDESU/go-revise/internal/application/mocks"
@@ -106,5 +107,62 @@ func TestUserService_GetUserByID(t *testing.T) {
 		})
 		t.Run("Expect error", subtest.Value(err).ErrorIs(domainUser.ErrInvalidIdentifier))
 		t.Run("Expect user", subtest.Value(user).DeepEqual(domainUser.User{}))
+	})
+}
+
+func TestUserService_SaveUser(t *testing.T) {
+
+	t.Run("With valid params", func(t *testing.T) {
+		suite := newUserServiceSuite(t)
+		defaultReminderTime := domainUser.DefaultReminderTime()
+		params := application.NewUserServiceParams{
+			ChatID:       domainUser.NewTelegramID(123456789),
+			Language:     language.Kazakh,
+			ReminderTime: &defaultReminderTime,
+		}
+
+		suite.mockUserRepository.On("Save", mock.Anything, mock.AnythingOfType("user.User")).Return(nil)
+
+		err := suite.userService.SaveUser(context.Background(), params)
+
+		t.Run("Expect no error", subtest.Value(err).NoError())
+		t.Run("Expect GetUserByID not called", func(t *testing.T) {
+			suite.mockUserProvider.AssertNotCalled(t, "GetUserByID")
+		})
+		t.Run("Expect GetUserByTelegramID not called", func(t *testing.T) {
+			suite.mockUserProvider.AssertNotCalled(t, "GetUserByTelegramID")
+		})
+		t.Run("Expect Save called", func(t *testing.T) {
+			suite.mockUserRepository.AssertCalled(t, "Save", mock.Anything, mock.AnythingOfType("user.User"))
+		})
+		t.Run("Expect UpdateSettings not called", func(t *testing.T) {
+			suite.mockUserRepository.AssertNotCalled(t, "UpdateSettings")
+		})
+
+	})
+
+	t.Run("With invalid params", func(t *testing.T) {
+		suite := newUserServiceSuite(t)
+		params := application.NewUserServiceParams{
+			ChatID:       domainUser.NewTelegramID(0),
+			Language:     language.Kazakh,
+			ReminderTime: nil,
+		}
+
+		err := suite.userService.SaveUser(context.Background(), params)
+
+		t.Run("Expect error", subtest.Value(err).ErrorIs(application.ErrInvalidArguments))
+		t.Run("Expect GetUserByID not called", func(t *testing.T) {
+			suite.mockUserProvider.AssertNotCalled(t, "GetUserByID")
+		})
+		t.Run("Expect GetUserByTelegramID not called", func(t *testing.T) {
+			suite.mockUserProvider.AssertNotCalled(t, "GetUserByTelegramID")
+		})
+		t.Run("Expect Save not called", func(t *testing.T) {
+			suite.mockUserRepository.AssertNotCalled(t, "Save")
+		})
+		t.Run("Expect UpdateSettings not called", func(t *testing.T) {
+			suite.mockUserRepository.AssertNotCalled(t, "UpdateSettings")
+		})
 	})
 }

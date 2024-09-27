@@ -2,6 +2,8 @@ package application
 
 import (
 	"context"
+	"errors"
+	"fmt"
 	"log/slog"
 
 	"github.com/gofrs/uuid"
@@ -10,6 +12,10 @@ import (
 
 	domainUser "github.com/ARUMANDESU/go-revise/internal/domain/user"
 	"github.com/ARUMANDESU/go-revise/pkg/logutil"
+)
+
+var (
+	ErrInvalidArguments = errors.New("invalid arguments")
 )
 
 // UserProvider handles the retrieval of user data.
@@ -83,6 +89,16 @@ type NewUserServiceParams struct {
 func (s UserService) SaveUser(ctx context.Context, u NewUserServiceParams) error {
 	const op = "UserService.SaveUser"
 	log := s.log.With("op", op)
+
+	if !u.ChatID.IsValid() {
+		return fmt.Errorf("%w: chat_id", ErrInvalidArguments)
+	}
+	if u.Language == language.Und {
+		return fmt.Errorf("%w: language", ErrInvalidArguments)
+	}
+	if !u.ReminderTime.IsValid() {
+		return fmt.Errorf("%w: reminder_time", ErrInvalidArguments)
+	}
 
 	settings := domainUser.Settings{
 		ID:           uuid.Must(uuid.NewV7()),

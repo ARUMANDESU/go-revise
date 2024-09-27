@@ -76,6 +76,13 @@ type ReminderTime struct {
 	Minute uint8 // 0-59
 }
 
+func (r *ReminderTime) IsValid() bool {
+	if r == nil {
+		return false
+	}
+	return r.Hour <= 23 && r.Minute <= 59
+}
+
 // DefaultReminderTime returns a default reminder time.
 func DefaultReminderTime() ReminderTime {
 	return ReminderTime{
@@ -91,12 +98,8 @@ func NewReminderTime(hour, minute uint8) ReminderTime {
 	switch {
 	case hour > 23:
 		hour = 23
-	case hour < 0:
-		hour = 0
 	case minute > 59:
 		minute = 59
-	case minute < 0:
-		minute = 0
 	}
 	return ReminderTime{
 		Hour:   hour,
