@@ -9,6 +9,14 @@ import (
 // StringArray is a custom type to handle string arrays in the database, since sqlite does not support arrays.
 type StringArray []string
 
+// IsValid checks if the string array is valid.
+func (a *StringArray) IsValid() bool {
+	if a == nil || len(*a) == 0 {
+		return false
+	}
+	return true
+}
+
 // Scan converts a database value into a string array.
 func (a *StringArray) Scan(value interface{}) error {
 	// Scan a database value into a string array: "a,b,c" -> ["a","b","c"]
