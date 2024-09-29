@@ -1,12 +1,22 @@
 package user
 
 import (
+	"errors"
 	"time"
 
 	"github.com/gofrs/uuid"
 	"golang.org/x/text/language"
 )
 
+var (
+	ErrInvalidSettings = errors.New("invalid settings")
+)
+
+// OptionFunc is a function that applies an option to a user.
+// It is used to configure a user during creation.
+type OptionFunc func(*User) error
+
+// User represents a user, lol.
 type User struct {
 	id        uuid.UUID
 	chatID    TelegramID
@@ -15,13 +25,21 @@ type User struct {
 	settings  Settings
 }
 
-func WithSettings(settings Settings) func(*User) {
-	return func(u *User) {
+func WithSettings(settings Settings) OptionFunc {
+	return func(u *User) error {
+		if !settings.IsValid() {
+			return ErrInvalidSettings
+		}
 		u.settings = settings
+		return nil
 	}
 }
 
-func NewUser(chatID TelegramID, options ...func(*User)) User {
+func NewUser(chatID TelegramID, options ...OptionFunc) (User, error) {
+	if !chatID.IsValid() {
+		return User{}, errors.New("chatID is required")
+	}
+
 	u := User{
 		id:        NewUserID(),
 		chatID:    chatID,
@@ -31,9 +49,22 @@ func NewUser(chatID TelegramID, options ...func(*User)) User {
 	}
 
 	for _, option := range options {
-		option(&u)
+		if err := option(&u); err != nil {
+			return User{}, err
+		}
 	}
 
+	return u, nil
+}
+
+// MustNewUser creates a new user and panics if an error occurs.
+//
+//	Note: This function is intended for use in tests.
+func MustNewUser(chatID TelegramID, options ...OptionFunc) User {
+	u, err := NewUser(chatID, options...)
+	if err != nil {
+		panic(err)
+	}
 	return u
 }
 
@@ -63,6 +94,10 @@ func DefaultSettings() Settings {
 		Language:     language.English,
 		ReminderTime: DefaultReminderTime(),
 	}
+}
+
+func (s Settings) IsValid() bool {
+	return s.Language != language.Und && s.ReminderTime.IsValid()
 }
 
 // ReminderTime represents a time of day when a reminder should be sent.

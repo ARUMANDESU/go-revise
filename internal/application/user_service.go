@@ -109,7 +109,11 @@ func (s UserService) SaveUser(ctx context.Context, u NewUserServiceParams) error
 		settings.ReminderTime = *u.ReminderTime
 	}
 
-	user := domainUser.NewUser(u.ChatID, domainUser.WithSettings(settings))
+	user, err := domainUser.NewUser(u.ChatID, domainUser.WithSettings(settings))
+	if err != nil {
+		log.Error("failed to create domainUser", logutil.Err(err))
+		return err
+	}
 
 	if err := s.userRepository.Save(ctx, user); err != nil {
 		log.Error("failed to save domainUser", logutil.Err(err))
