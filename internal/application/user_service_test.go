@@ -94,7 +94,7 @@ func TestUserService_GetUserByID(t *testing.T) {
 	}
 }
 
-func TestUserService_SaveUser(t *testing.T) {
+func TestUserService_RegisterUser(t *testing.T) {
 	tests := []struct {
 		name           string
 		params         application.NewUserServiceParams
@@ -110,10 +110,10 @@ func TestUserService_SaveUser(t *testing.T) {
 				ReminderTime: pointers.New(domainUser.NewReminderTime(10, 0)),
 			},
 			mockSetup: func(suite UserServiceSuite) {
-				suite.mockUserRepository.On("Save", mock.Anything, mock.AnythingOfType("user.User")).Return(nil)
+				suite.mockUserRepository.On("SaveUser", mock.Anything, mock.AnythingOfType("user.User")).Return(nil)
 			},
 			expectedError:  nil,
-			expectedCalled: []string{"Save"},
+			expectedCalled: []string{"SaveUser"},
 		},
 		{
 			name: "With invalid params",
@@ -133,10 +133,77 @@ func TestUserService_SaveUser(t *testing.T) {
 			suite := newUserServiceSuite(t)
 			tt.mockSetup(suite)
 
-			err := suite.userService.SaveUser(context.Background(), tt.params)
+			err := suite.userService.RegisterUser(context.Background(), tt.params)
 
 			for _, method := range tt.expectedCalled {
 				suite.mockUserRepository.AssertCalled(t, method, mock.Anything, mock.Anything)
+			}
+			suite.mockUserProvider.AssertExpectations(t)
+			suite.mockUserRepository.AssertExpectations(t)
+
+			if tt.expectedError != nil {
+				t.Run("Expect error", subtest.Value(err).ErrorIs(tt.expectedError))
+			} else {
+				t.Run("Expect no error", subtest.Value(err).NoError())
+			}
+		})
+	}
+}
+
+func TestUserService_UpdateUserSettings(t *testing.T) {
+	tests := []struct {
+		name           string
+		id             domainUser.Identifier
+		settings       domainUser.Settings
+		mockSetup      func(suite UserServiceSuite)
+		expectedError  error
+		expectedCalled []string
+	}{
+		{
+			name:     "With valid params",
+			id:       domainUser.NewUserUUID(),
+			settings: domainUser.DefaultSettings(),
+			mockSetup: func(suite UserServiceSuite) {
+				suite.mockUserRepository.On(
+					"UpdateUser",
+					mock.Anything,
+					mock.AnythingOfType("uuid.UUID"),
+					mock.Anything, // updateFunc
+				).Return(nil)
+			},
+			expectedError:  nil,
+			expectedCalled: []string{"UpdateUser"},
+		},
+		{
+			name:           "With invalid identifier",
+			id:             domainUser.TelegramID(0),
+			settings:       domainUser.DefaultSettings(),
+			mockSetup:      func(suite UserServiceSuite) {},
+			expectedError:  domainUser.ErrInvalidIdentifier,
+			expectedCalled: []string{},
+		},
+		{
+			name: "With invalid settings",
+			id:   domainUser.NewUserUUID(),
+			settings: domainUser.Settings{
+				Language:     language.Und,
+				ReminderTime: domainUser.ReminderTime{},
+			},
+			mockSetup:      func(suite UserServiceSuite) {},
+			expectedError:  domainUser.ErrInvalidSettings,
+			expectedCalled: []string{},
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			suite := newUserServiceSuite(t)
+			tt.mockSetup(suite)
+
+			err := suite.userService.UpdateUserSettings(context.Background(), tt.id, tt.settings)
+
+			for _, method := range tt.expectedCalled {
+				suite.mockUserRepository.AssertCalled(t, method, mock.Anything, mock.Anything, mock.Anything)
 			}
 			suite.mockUserProvider.AssertExpectations(t)
 			suite.mockUserRepository.AssertExpectations(t)

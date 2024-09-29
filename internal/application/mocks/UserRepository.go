@@ -16,12 +16,12 @@ type UserRepository struct {
 	mock.Mock
 }
 
-// Save provides a mock function with given fields: ctx, u
-func (_m *UserRepository) Save(ctx context.Context, u user.User) error {
+// SaveUser provides a mock function with given fields: ctx, u
+func (_m *UserRepository) SaveUser(ctx context.Context, u user.User) error {
 	ret := _m.Called(ctx, u)
 
 	if len(ret) == 0 {
-		panic("no return value specified for Save")
+		panic("no return value specified for SaveUser")
 	}
 
 	var r0 error
@@ -34,17 +34,17 @@ func (_m *UserRepository) Save(ctx context.Context, u user.User) error {
 	return r0
 }
 
-// UpdateSettings provides a mock function with given fields: ctx, userID, settings
-func (_m *UserRepository) UpdateSettings(ctx context.Context, userID uuid.UUID, settings user.Settings) error {
-	ret := _m.Called(ctx, userID, settings)
+// UpdateUser provides a mock function with given fields: ctx, userID, updateFn
+func (_m *UserRepository) UpdateUser(ctx context.Context, userID uuid.UUID, updateFn func(*user.User) (*user.User, error)) error {
+	ret := _m.Called(ctx, userID, updateFn)
 
 	if len(ret) == 0 {
-		panic("no return value specified for UpdateSettings")
+		panic("no return value specified for UpdateUser")
 	}
 
 	var r0 error
-	if rf, ok := ret.Get(0).(func(context.Context, uuid.UUID, user.Settings) error); ok {
-		r0 = rf(ctx, userID, settings)
+	if rf, ok := ret.Get(0).(func(context.Context, uuid.UUID, func(*user.User) (*user.User, error)) error); ok {
+		r0 = rf(ctx, userID, updateFn)
 	} else {
 		r0 = ret.Error(0)
 	}

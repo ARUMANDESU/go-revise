@@ -7,6 +7,7 @@ import (
 	"log/slog"
 
 	"github.com/gofrs/uuid"
+	"go.uber.org/multierr"
 
 	"golang.org/x/text/language"
 
@@ -32,10 +33,11 @@ type UserProvider interface {
 //
 //go:generate mockery --name UserRepository --output mocks/
 type UserRepository interface {
-	// Save saves a user.
-	Save(ctx context.Context, u domainUser.User) error
-	// UpdateSettings updates user settings.
-	UpdateSettings(ctx context.Context, userID uuid.UUID, settings domainUser.Settings) error
+	// SaveUser saves a user.
+	SaveUser(ctx context.Context, u domainUser.User) error
+	// UpdateUser updates user data.
+	// The updateFn function is called with the user data to be updated.
+	UpdateUser(ctx context.Context, userID uuid.UUID, updateFn func(*domainUser.User) (*domainUser.User, error)) error
 }
 
 type UserService struct {
@@ -86,8 +88,8 @@ type NewUserServiceParams struct {
 	ReminderTime *domainUser.ReminderTime `json:"reminder_time"`
 }
 
-func (s UserService) SaveUser(ctx context.Context, u NewUserServiceParams) error {
-	const op = "UserService.SaveUser"
+func (s UserService) RegisterUser(ctx context.Context, u NewUserServiceParams) error {
+	const op = "UserService.RegisterUser"
 	log := s.log.With("op", op)
 
 	if !u.ChatID.IsValid() {
@@ -101,7 +103,6 @@ func (s UserService) SaveUser(ctx context.Context, u NewUserServiceParams) error
 	}
 
 	settings := domainUser.Settings{
-		ID:           uuid.Must(uuid.NewV7()),
 		Language:     u.Language,
 		ReminderTime: domainUser.DefaultReminderTime(),
 	}
@@ -115,7 +116,7 @@ func (s UserService) SaveUser(ctx context.Context, u NewUserServiceParams) error
 		return err
 	}
 
-	if err := s.userRepository.Save(ctx, user); err != nil {
+	if err := s.userRepository.SaveUser(ctx, user); err != nil {
 		log.Error("failed to save domainUser", logutil.Err(err))
 		return err
 	}
@@ -127,8 +128,12 @@ func (s UserService) UpdateUserSettings(ctx context.Context, id domainUser.Ident
 	const op = "UserService.UpdateUserSettings"
 	log := s.log.With("op", op)
 
-	if !id.IsValid() {
-		return domainUser.ErrInvalidIdentifier
+	switch {
+	case !id.IsValid():
+		return multierr.Combine(ErrInvalidArguments, domainUser.ErrInvalidIdentifier)
+	}
+	if !settings.IsValid() {
+		return multierr.Combine(ErrInvalidArguments, domainUser.ErrInvalidSettings)
 	}
 
 	var userID uuid.UUID
@@ -146,7 +151,10 @@ func (s UserService) UpdateUserSettings(ctx context.Context, id domainUser.Ident
 		return domainUser.ErrInvalidIdentifier
 	}
 
-	err := s.userRepository.UpdateSettings(ctx, userID, settings)
+	err := s.userRepository.UpdateUser(ctx, userID, func(user *domainUser.User) (*domainUser.User, error) {
+		user.UpdateSettings(settings)
+		return user, nil
+	})
 	if err != nil {
 		log.Error("failed to update domainUser settings", logutil.Err(err))
 		return err
