@@ -19,34 +19,13 @@ var (
 	ErrInvalidArguments = errors.New("invalid arguments")
 )
 
-// UserProvider handles the retrieval of user data.
-//
-//go:generate mockery --name UserProvider --output mocks/
-type UserProvider interface {
-	// GetUserByID returns a user by ID(UUID).
-	GetUserByID(ctx context.Context, id uuid.UUID) (domainUser.User, error)
-	// GetUserByTelegramID returns a user by Telegram ID(int64).
-	GetUserByTelegramID(ctx context.Context, telegramID domainUser.TelegramID) (domainUser.User, error)
-}
-
-// UserRepository handles the persistence of user data.
-//
-//go:generate mockery --name UserRepository --output mocks/
-type UserRepository interface {
-	// SaveUser saves a user.
-	SaveUser(ctx context.Context, u domainUser.User) error
-	// UpdateUser updates user data.
-	// The updateFn function is called with the user data to be updated.
-	UpdateUser(ctx context.Context, userID uuid.UUID, updateFn func(*domainUser.User) (*domainUser.User, error)) error
-}
-
 type UserService struct {
 	log            *slog.Logger
-	userRepository UserRepository
-	userProvider   UserProvider
+	userRepository domainUser.Repository
+	userProvider   domainUser.Provider
 }
 
-func NewUserService(log *slog.Logger, userRepository UserRepository, userProvider UserProvider) UserService {
+func NewUserService(log *slog.Logger, userRepository domainUser.Repository, userProvider domainUser.Provider) UserService {
 	return UserService{
 		log:            log,
 		userRepository: userRepository,

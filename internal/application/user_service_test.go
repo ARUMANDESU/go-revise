@@ -9,23 +9,23 @@ import (
 	"golang.org/x/text/language"
 
 	"github.com/ARUMANDESU/go-revise/internal/application"
-	"github.com/ARUMANDESU/go-revise/internal/application/mocks"
 	domainUser "github.com/ARUMANDESU/go-revise/internal/domain/user"
+	"github.com/ARUMANDESU/go-revise/internal/domain/user/mocks"
 	"github.com/ARUMANDESU/go-revise/pkg/logutil"
 	"github.com/ARUMANDESU/go-revise/pkg/pointers"
 )
 
 type UserServiceSuite struct {
 	userService        application.UserService
-	mockUserProvider   *mocks.UserProvider
-	mockUserRepository *mocks.UserRepository
+	mockUserProvider   *mocks.Provider
+	mockUserRepository *mocks.Repository
 }
 
 func newUserServiceSuite(t *testing.T) UserServiceSuite {
 	t.Helper()
 
-	mockUserProvider := mocks.NewUserProvider(t)
-	mockUserRepository := mocks.NewUserRepository(t)
+	mockUserProvider := mocks.NewProvider(t)
+	mockUserRepository := mocks.NewRepository(t)
 
 	userService := application.NewUserService(logutil.Plug(), mockUserRepository, mockUserProvider)
 
