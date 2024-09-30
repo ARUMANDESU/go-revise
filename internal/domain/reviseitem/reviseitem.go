@@ -9,6 +9,14 @@ import (
 	"github.com/ARUMANDESU/go-revise/internal/domain/valueobject"
 )
 
+var (
+	ErrInvalidUserID         = fmt.Errorf("invalid userID")
+	ErrNameRequired          = fmt.Errorf("name is required")
+	ErrDescriptionRequired   = fmt.Errorf("description is required")
+	ErrInvalidTags           = fmt.Errorf("tags are invalid")
+	ErrInvalidNextRevisionAt = fmt.Errorf("nextRevisionAt is required")
+)
+
 // ReviseItem represents a revise item.
 // A revise item is a thing that needs to be revised.
 // It is mutable.
@@ -36,19 +44,19 @@ func NewReviseItemID() uuid.UUID {
 // NewReviseItem creates a new revise item. It returns an error if the arguments are invalid.
 func NewReviseItem(userID uuid.UUID, name, description string, tags valueobject.StringArray, nextRevisionAt time.Time) (ReviseItem, error) {
 	if userID == uuid.Nil {
-		return ReviseItem{}, fmt.Errorf("userID is required")
+		return ReviseItem{}, ErrInvalidUserID
 	}
-	if name == "" {
-		return ReviseItem{}, fmt.Errorf("name is required")
+	if err := validateName(name); err != nil {
+		return ReviseItem{}, err
 	}
-	if description == "" {
-		return ReviseItem{}, fmt.Errorf("description is required")
+	if err := validateDescription(description); err != nil {
+		return ReviseItem{}, err
 	}
-	if !tags.IsValid() {
-		return ReviseItem{}, fmt.Errorf("tags are invalid")
+	if err := validateTags(tags); err != nil {
+		return ReviseItem{}, err
 	}
-	if nextRevisionAt.IsZero() {
-		return ReviseItem{}, fmt.Errorf("nextRevisionAt is required")
+	if err := validateNextRevisionAt(nextRevisionAt); err != nil {
+		return ReviseItem{}, err
 	}
 
 	return ReviseItem{
@@ -64,8 +72,8 @@ func NewReviseItem(userID uuid.UUID, name, description string, tags valueobject.
 }
 
 func (r *ReviseItem) UpdateName(name string) error {
-	if name == "" {
-		return fmt.Errorf("name is required")
+	if err := validateName(name); err != nil {
+		return err
 	}
 
 	r.name = name
@@ -75,8 +83,8 @@ func (r *ReviseItem) UpdateName(name string) error {
 }
 
 func (r *ReviseItem) UpdateDescription(description string) error {
-	if description == "" {
-		return fmt.Errorf("description is required")
+	if err := validateDescription(description); err != nil {
+		return err
 	}
 
 	r.description = description
@@ -86,8 +94,8 @@ func (r *ReviseItem) UpdateDescription(description string) error {
 }
 
 func (r *ReviseItem) UpdateTags(tags valueobject.StringArray) error {
-	if !tags.IsValid() {
-		return fmt.Errorf("tags are invalid")
+	if err := validateTags(tags); err != nil {
+		return err
 	}
 
 	r.tags = tags
@@ -96,9 +104,14 @@ func (r *ReviseItem) UpdateTags(tags valueobject.StringArray) error {
 	return nil
 }
 
+func (r *ReviseItem) PurgeTags() {
+	r.tags = nil
+	r.updatedAt = time.Now()
+}
+
 func (r *ReviseItem) UpdateNextRevisionAt(nextRevisionAt time.Time) error {
-	if nextRevisionAt.IsZero() {
-		return fmt.Errorf("nextRevisionAt is required")
+	if err := validateNextRevisionAt(nextRevisionAt); err != nil {
+		return err
 	}
 
 	r.nextRevisionAt = nextRevisionAt
