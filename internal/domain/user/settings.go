@@ -38,7 +38,11 @@ func DefaultSettings() Settings {
 	}
 }
 
-func (s Settings) IsValid() bool {
+func (s *Settings) IsValid() bool {
+	if s == nil {
+		return false
+	}
+
 	return s.Language != language.Und && s.ReminderTime.IsValid()
 }
 

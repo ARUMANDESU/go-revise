@@ -7,9 +7,18 @@ import (
 	"github.com/gofrs/uuid"
 )
 
+var (
+	ErrInvalidUserID = errors.New("invalid userID")
+	ErrInvalidChatID = errors.New("invalid chatID")
+)
+
 // OptionFunc is a function that applies an option to a user.
 // It is used to configure a user during creation.
 type OptionFunc func(*User) error
+
+func NewUserID() uuid.UUID {
+	return uuid.Must(uuid.NewV7())
+}
 
 // User represents a user, lol.
 type User struct {
@@ -20,23 +29,36 @@ type User struct {
 	settings  Settings
 }
 
-func WithSettings(settings Settings) OptionFunc {
-	return func(u *User) error {
-		if !settings.IsValid() {
-			return ErrInvalidSettings
-		}
-		u.settings = settings
-		return nil
-	}
+func (u *User) ID() uuid.UUID {
+	return u.id
 }
 
-func NewUser(chatID TelegramID, options ...OptionFunc) (User, error) {
+func (u *User) UpdateSettings(settings Settings) error {
+	if !settings.IsValid() {
+		return ErrInvalidSettings
+	}
+
+	u.settings = settings
+	u.updatedAt = time.Now()
+
+	return nil
+}
+
+func (u *User) Settings() Settings {
+	return u.settings
+}
+
+func NewUser(uid uuid.UUID, chatID TelegramID, options ...OptionFunc) (User, error) {
+	switch {
+	case uid == uuid.Nil:
+		return User{}, ErrInvalidUserID
+	}
 	if !chatID.IsValid() {
-		return User{}, errors.New("chatID is required")
+		return User{}, ErrInvalidChatID
 	}
 
 	u := User{
-		id:        NewUserID(),
+		id:        uid,
 		chatID:    chatID,
 		createdAt: time.Now(),
 		updatedAt: time.Now(),
@@ -55,22 +77,20 @@ func NewUser(chatID TelegramID, options ...OptionFunc) (User, error) {
 // MustNewUser creates a new user and panics if an error occurs.
 //
 //	Note: This function is intended for use in tests.
-func MustNewUser(chatID TelegramID, options ...OptionFunc) User {
-	u, err := NewUser(chatID, options...)
+func MustNewUser(uid uuid.UUID, chatID TelegramID, options ...OptionFunc) User {
+	u, err := NewUser(uid, chatID, options...)
 	if err != nil {
 		panic(err)
 	}
 	return u
 }
 
-func (u *User) UpdateSettings(settings Settings) {
-	u.settings = settings
-}
-
-func (u *User) ID() uuid.UUID {
-	return u.id
-}
-
-func NewUserID() uuid.UUID {
-	return uuid.Must(uuid.NewV7())
+func WithSettings(settings Settings) OptionFunc {
+	return func(u *User) error {
+		if !settings.IsValid() {
+			return ErrInvalidSettings
+		}
+		u.settings = settings
+		return nil
+	}
 }

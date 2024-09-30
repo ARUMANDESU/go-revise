@@ -89,7 +89,7 @@ func (s UserService) RegisterUser(ctx context.Context, u NewUserServiceParams) e
 		settings.ReminderTime = *u.ReminderTime
 	}
 
-	user, err := domainUser.NewUser(u.ChatID, domainUser.WithSettings(settings))
+	user, err := domainUser.NewUser(domainUser.NewUserID(), u.ChatID, domainUser.WithSettings(settings))
 	if err != nil {
 		log.Error("failed to create domainUser", logutil.Err(err))
 		return err
@@ -131,7 +131,11 @@ func (s UserService) UpdateUserSettings(ctx context.Context, id domainUser.Ident
 	}
 
 	err := s.userRepository.UpdateUser(ctx, userID, func(user *domainUser.User) (*domainUser.User, error) {
-		user.UpdateSettings(settings)
+		err := user.UpdateSettings(settings)
+		if err != nil {
+			return nil, err
+		}
+
 		return user, nil
 	})
 	if err != nil {
