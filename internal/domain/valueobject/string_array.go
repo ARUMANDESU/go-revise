@@ -17,6 +17,23 @@ func (a *StringArray) IsValid() bool {
 	return true
 }
 
+// TrimSpace trims spaces from each string in the array and returns a new array.
+func (a *StringArray) TrimSpace() StringArray {
+	if a == nil || len(*a) == 0 {
+		return nil
+	}
+
+	// copy the array to avoid modifying the original
+	arr := *a
+
+	// trim spaces before converting to string
+	for i, tag := range arr {
+		arr[i] = strings.TrimSpace(tag)
+	}
+
+	return arr
+}
+
 // Scan converts a database value into a string array.
 func (a *StringArray) Scan(value interface{}) error {
 	// Scan a database value into a string array: "a,b,c" -> ["a","b","c"]

@@ -1,20 +1,12 @@
 package reviseitem
 
 import (
-	"fmt"
+	"strings"
 	"time"
 
 	"github.com/gofrs/uuid"
 
 	"github.com/ARUMANDESU/go-revise/internal/domain/valueobject"
-)
-
-var (
-	ErrInvalidUserID         = fmt.Errorf("invalid userID")
-	ErrNameRequired          = fmt.Errorf("name is required")
-	ErrDescriptionRequired   = fmt.Errorf("description is required")
-	ErrInvalidTags           = fmt.Errorf("tags are invalid")
-	ErrInvalidNextRevisionAt = fmt.Errorf("nextRevisionAt is required")
 )
 
 // ReviseItem represents a revise item.
@@ -41,34 +33,47 @@ func NewReviseItemID() uuid.UUID {
 	return uuid.Must(uuid.NewV7())
 }
 
+type NewArgs struct {
+	UserID         uuid.UUID
+	Name           string
+	Description    string
+	Tags           valueobject.StringArray
+	NextRevisionAt time.Time
+}
+
 // NewReviseItem creates a new revise item. It returns an error if the arguments are invalid.
-func NewReviseItem(userID uuid.UUID, name, description string, tags valueobject.StringArray, nextRevisionAt time.Time) (ReviseItem, error) {
-	if userID == uuid.Nil {
-		return ReviseItem{}, ErrInvalidUserID
+func NewReviseItem(args NewArgs) (*ReviseItem, error) {
+	if args.UserID == uuid.Nil {
+		return nil, ErrInvalidUserID
 	}
-	if err := validateName(name); err != nil {
-		return ReviseItem{}, err
+	args.Name = strings.TrimSpace(args.Name)
+	if err := validateName(args.Name); err != nil {
+		return nil, err
 	}
-	if err := validateDescription(description); err != nil {
-		return ReviseItem{}, err
+	args.Description = strings.TrimSpace(args.Description)
+	if err := validateDescription(args.Description); err != nil {
+		return nil, err
 	}
-	if err := validateTags(tags); err != nil {
-		return ReviseItem{}, err
+	args.Tags = args.Tags.TrimSpace()
+	if err := validateTags(args.Tags); err != nil {
+		return nil, err
 	}
-	if err := validateNextRevisionAt(nextRevisionAt); err != nil {
-		return ReviseItem{}, err
+	if err := validateNextRevisionAt(args.NextRevisionAt); err != nil {
+		return nil, err
 	}
 
-	return ReviseItem{
+	now := time.Now()
+	return &ReviseItem{
 		id:             NewReviseItemID(),
-		userID:         userID,
-		name:           name,
-		description:    description,
-		tags:           tags,
-		createdAt:      time.Now(),
-		updatedAt:      time.Now(),
-		nextRevisionAt: nextRevisionAt,
+		userID:         args.UserID,
+		name:           args.Name,
+		description:    args.Description,
+		tags:           args.Tags,
+		createdAt:      now,
+		updatedAt:      now,
+		nextRevisionAt: args.NextRevisionAt,
 	}, nil
+
 }
 
 func (r *ReviseItem) UpdateName(name string) error {
@@ -119,4 +124,15 @@ func (r *ReviseItem) UpdateNextRevisionAt(nextRevisionAt time.Time) error {
 	r.updatedAt = time.Now()
 
 	return nil
+}
+
+func (r *ReviseItem) MarkAsDeleted() {
+	now := time.Now()
+	r.deletedAt = &now
+	r.updatedAt = now
+}
+
+func (r *ReviseItem) Restore() {
+	r.deletedAt = nil
+	r.updatedAt = time.Now()
 }
