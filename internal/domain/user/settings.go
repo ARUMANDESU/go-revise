@@ -12,8 +12,8 @@ var (
 
 // Settings represents user settings.
 type Settings struct {
-	Language     language.Tag
-	ReminderTime ReminderTime
+	language     language.Tag
+	reminderTime ReminderTime
 }
 
 func NewSettings(lang *language.Tag, reminderTime ReminderTime) (Settings, error) {
@@ -25,16 +25,16 @@ func NewSettings(lang *language.Tag, reminderTime ReminderTime) (Settings, error
 	}
 
 	return Settings{
-		Language:     *lang,
-		ReminderTime: reminderTime,
+		language:     *lang,
+		reminderTime: reminderTime,
 	}, nil
 }
 
 // DefaultSettings returns default user settings.
 func DefaultSettings() Settings {
 	return Settings{
-		Language:     DefaultLanguage(),
-		ReminderTime: DefaultReminderTime(),
+		language:     DefaultLanguage(),
+		reminderTime: DefaultReminderTime(),
 	}
 }
 
@@ -43,7 +43,7 @@ func (s *Settings) IsValid() bool {
 		return false
 	}
 
-	return s.Language != language.Und && s.ReminderTime.IsValid()
+	return s.language != language.Und && s.reminderTime.IsValid()
 }
 
 func DefaultLanguage() language.Tag {
