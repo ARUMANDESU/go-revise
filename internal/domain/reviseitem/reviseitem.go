@@ -33,7 +33,8 @@ func NewReviseItemID() uuid.UUID {
 	return uuid.Must(uuid.NewV7())
 }
 
-type NewArgs struct {
+type NewReviseItemArgs struct {
+	ID             uuid.UUID
 	UserID         uuid.UUID
 	Name           string
 	Description    string
@@ -42,7 +43,10 @@ type NewArgs struct {
 }
 
 // NewReviseItem creates a new revise item. It returns an error if the arguments are invalid.
-func NewReviseItem(args NewArgs) (*ReviseItem, error) {
+func NewReviseItem(args NewReviseItemArgs) (*ReviseItem, error) {
+	if args.ID == uuid.Nil {
+		return nil, ErrInvalidID
+	}
 	if args.UserID == uuid.Nil {
 		return nil, ErrInvalidUserID
 	}
@@ -64,7 +68,7 @@ func NewReviseItem(args NewArgs) (*ReviseItem, error) {
 
 	now := time.Now()
 	return &ReviseItem{
-		id:             NewReviseItemID(),
+		id:             args.ID,
 		userID:         args.UserID,
 		name:           args.Name,
 		description:    args.Description,
@@ -107,11 +111,6 @@ func (r *ReviseItem) UpdateTags(tags valueobject.StringArray) error {
 	r.updatedAt = time.Now()
 
 	return nil
-}
-
-func (r *ReviseItem) PurgeTags() {
-	r.tags = nil
-	r.updatedAt = time.Now()
 }
 
 func (r *ReviseItem) UpdateNextRevisionAt(nextRevisionAt time.Time) error {

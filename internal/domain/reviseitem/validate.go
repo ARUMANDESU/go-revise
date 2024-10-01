@@ -12,6 +12,7 @@ import (
 )
 
 var (
+	ErrInvalidID            = fmt.Errorf("invalid revise item id")
 	ErrInvalidUserID        = fmt.Errorf("invalid userID")
 	ErrInvalidArgument      = fmt.Errorf("invalid argument")
 	ErrNextRevisionAtInPast = fmt.Errorf("nextRevisionAt must be in the future")

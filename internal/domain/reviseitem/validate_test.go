@@ -50,6 +50,11 @@ func TestValidateName_Invalid(t *testing.T) {
 		want     error
 	}{
 		{
+			name:     "With long Name",
+			username: longName(t),
+			want:     ErrInvalidArgument,
+		},
+		{
 			name:     "With empty Name",
 			username: "",
 			want:     ErrInvalidArgument,
@@ -156,6 +161,14 @@ func TestValidateTags(t *testing.T) {
 		{
 			name: "With valid tags",
 			tags: validTags(t),
+		},
+		{
+			name: "With space in tags",
+			tags: valueobject.StringArray{"tag 1", "tag 2"},
+		},
+		{
+			name: "With spaces around tags",
+			tags: valueobject.StringArray{" tag1 ", " tag2", "tag3 "},
 		},
 		{
 			name: "With no tags",
@@ -265,6 +278,12 @@ func validName(t *testing.T, lang language.Tag) string {
 	default:
 		return "Go Chapter 1" // by default return English
 	}
+}
+
+func longName(t *testing.T) string {
+	t.Helper()
+
+	return strings.Repeat("a", maxNameLength+1)
 }
 
 func validDescription(t *testing.T, lang language.Tag) string {
