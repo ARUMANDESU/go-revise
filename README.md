@@ -116,8 +116,9 @@ The bot uses the [Spaced repetition](https://en.wikipedia.org/wiki/Spaced_repeti
 
 
 
-## Notification scheduling logic
-![Notification scheduling logic](./assets/notification_logic.png)
+## Structure
+
+![structure.png](assets/structure.png)
 
 
 
