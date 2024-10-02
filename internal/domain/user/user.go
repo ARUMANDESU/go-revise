@@ -16,6 +16,8 @@ var (
 // It is used to configure a user during creation.
 type OptionFunc func(*User) error
 
+type TelegramID int64
+
 func NewUserID() uuid.UUID {
 	return uuid.Must(uuid.NewV7())
 }

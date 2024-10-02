@@ -282,12 +282,26 @@ func assertReviseItem(t *testing.T, got, want *ReviseItem) {
 	assert.Equal(t, got.userID, want.userID)
 	assert.Equal(t, got.name, want.name)
 	assert.Equal(t, got.description, want.description)
-	assert.Equal(t, got.tags, want.tags)
+	assertTags(t, got.tags, want.tags)
 	assert.WithinDuration(t, got.createdAt, want.createdAt, time.Second)
 	assert.WithinDuration(t, got.updatedAt, want.updatedAt, time.Second)
 	assert.Equal(t, got.deletedAt, want.deletedAt)
 	assert.WithinDuration(t, got.nextRevisionAt, want.nextRevisionAt, time.Second)
 	assert.WithinDuration(t, got.lastRevisedAt, want.lastRevisedAt, time.Second)
+}
+
+func assertTags(t *testing.T, got, want valueobject.Tags) {
+	t.Helper()
+
+	if len(got) != len(want) {
+		t.Errorf("got: %v, want: %v", got, want)
+	}
+	// Check if the tags are the same, but the order can be different.
+	for _, tag := range got {
+		if !want.Contains(tag) {
+			t.Errorf("got: %v, want: %v", got, want)
+		}
+	}
 }
 
 func validReviseItem(t *testing.T) *ReviseItem {

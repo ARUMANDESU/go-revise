@@ -35,7 +35,7 @@ func TestNewTags(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			got := NewTags(tt.tags...)
-			t.Run(fmt.Sprintf("Expected %v", tt.want), subtest.Value(got).DeepEqual(tt.want))
+			t.Run(fmt.Sprintf("Expected %v", tt.want), assertTags(got, tt.want))
 		})
 	}
 }
@@ -151,7 +151,7 @@ func TestTags_Add(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			tt.t.Add(tt.tag)
-			t.Run(fmt.Sprintf("Expected %v", tt.want), subtest.Value(tt.t).DeepEqual(tt.want))
+			t.Run(fmt.Sprintf("Expected %v", tt.want), assertTags(tt.t, tt.want))
 		})
 	}
 }
@@ -218,7 +218,7 @@ func TestTags_AddMany(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			tt.t.AddMany(tt.tags...)
-			t.Run(fmt.Sprintf("Expected %v", tt.want), subtest.Value(tt.t).DeepEqual(tt.want))
+			t.Run(fmt.Sprintf("Expected %v", tt.want), assertTags(tt.t, tt.want))
 		})
 	}
 }
@@ -273,7 +273,7 @@ func TestTags_Remove(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			tt.t.Remove(tt.tag)
-			t.Run(fmt.Sprintf("Expected %v", tt.want), subtest.Value(tt.t).DeepEqual(tt.want))
+			t.Run(fmt.Sprintf("Expected %v", tt.want), assertTags(tt.t, tt.want))
 		})
 	}
 }
@@ -328,7 +328,7 @@ func TestTags_RemoveMany(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			tt.t.RemoveMany(tt.tags...)
-			t.Run(fmt.Sprintf("Expected %v", tt.want), subtest.Value(tt.t).DeepEqual(tt.want))
+			t.Run(fmt.Sprintf("Expected %v", tt.want), assertTags(tt.t, tt.want))
 		})
 	}
 }
@@ -394,7 +394,7 @@ func TestTags_TrimSpace(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			got := tt.t.TrimSpace()
-			t.Run(fmt.Sprintf("Expected %v", tt.want), subtest.Value(got).DeepEqual(tt.want))
+			t.Run(fmt.Sprintf("Expected %v", tt.want), assertTags(got, tt.want))
 		})
 	}
 }
@@ -427,7 +427,7 @@ func TestTags_Unique(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			got := tt.t.Unique()
-			t.Run(fmt.Sprintf("Expected %v", tt.want), subtest.Value(got).DeepEqual(tt.want))
+			t.Run(fmt.Sprintf("Expected %v", tt.want), assertTags(got, tt.want))
 		})
 	}
 }
@@ -458,9 +458,26 @@ func TestTags_Normalize(t *testing.T) {
 	}
 
 	for _, tt := range tests {
+		tt := tt
 		t.Run(tt.name, func(t *testing.T) {
 			tt.t.Normalize()
-			t.Run(fmt.Sprintf("Expected %v", tt.want), subtest.Value(tt.t).DeepEqual(tt.want))
+			t.Run(fmt.Sprintf("Expected %v", tt.want), assertTags(tt.t, tt.want))
 		})
+	}
+}
+
+func assertTags(got, want Tags) func(t *testing.T) {
+	return func(t *testing.T) {
+		t.Helper()
+
+		if len(got) != len(want) {
+			t.Errorf("got: %v, want: %v", got, want)
+		}
+		// Check if the tags are the same, but the order can be different.
+		for _, tag := range got {
+			if !want.Contains(tag) {
+				t.Errorf("got: %v, want: %v", got, want)
+			}
+		}
 	}
 }
