@@ -156,7 +156,7 @@ func TestValidateTags(t *testing.T) {
 
 	tests := []struct {
 		name string
-		tags valueobject.StringArray
+		tags valueobject.Tags
 	}{
 		{
 			name: "With valid tags",
@@ -164,19 +164,19 @@ func TestValidateTags(t *testing.T) {
 		},
 		{
 			name: "With space in tags",
-			tags: valueobject.StringArray{"tag 1", "tag 2"},
+			tags: valueobject.Tags{"tag 1", "tag 2"},
 		},
 		{
 			name: "With spaces around tags",
-			tags: valueobject.StringArray{" tag1 ", " tag2", "tag3 "},
+			tags: valueobject.Tags{" tag1 ", " tag2", "tag3 "},
 		},
 		{
 			name: "With no tags",
-			tags: valueobject.StringArray{},
+			tags: valueobject.Tags{},
 		},
 		{
 			name: "With one tag",
-			tags: valueobject.StringArray{"tag1"},
+			tags: valueobject.Tags{"tag1"},
 		},
 	}
 
@@ -193,7 +193,7 @@ func TestValidateTags_Invalid(t *testing.T) {
 
 	tests := []struct {
 		name string
-		tags valueobject.StringArray
+		tags valueobject.Tags
 		want error
 	}{
 		{
@@ -203,7 +203,7 @@ func TestValidateTags_Invalid(t *testing.T) {
 		},
 		{
 			name: "With too long tag",
-			tags: valueobject.StringArray{longTag(t), "tag2"},
+			tags: valueobject.Tags{longTag(t), "tag2"},
 			want: ErrInvalidArgument,
 		},
 	}
@@ -301,10 +301,10 @@ func validDescription(t *testing.T, lang language.Tag) string {
 	}
 }
 
-func validTags(t *testing.T) valueobject.StringArray {
+func validTags(t *testing.T) valueobject.Tags {
 	t.Helper()
 
-	return valueobject.StringArray{"tag1", "tag2"}
+	return valueobject.Tags{"tag1", "tag2"}
 }
 
 func validNextRevisionAt(t *testing.T) time.Time {
@@ -319,10 +319,10 @@ func longDescription(t *testing.T) string {
 	return gofakeit.Sentence(maxDescriptionLength + 1)
 }
 
-func moreTags(t *testing.T) valueobject.StringArray {
+func moreTags(t *testing.T) valueobject.Tags {
 	t.Helper()
 
-	tags := valueobject.StringArray{}
+	tags := valueobject.Tags{}
 	for i := 0; i < maxNumTags+1; i++ {
 		tags = append(tags, gofakeit.Word())
 	}

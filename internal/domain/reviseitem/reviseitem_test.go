@@ -167,7 +167,7 @@ func TestReviseItem_UpdateTags(t *testing.T) {
 
 	tests := []struct {
 		name    string
-		newTags valueobject.StringArray
+		newTags valueobject.Tags
 		wantErr bool
 	}{
 		{

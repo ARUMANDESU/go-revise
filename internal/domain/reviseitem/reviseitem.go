@@ -18,7 +18,7 @@ type ReviseItem struct {
 
 	name        string
 	description string
-	tags        valueobject.StringArray
+	tags        valueobject.Tags
 
 	createdAt time.Time
 	updatedAt time.Time
@@ -38,7 +38,7 @@ type NewReviseItemArgs struct {
 	UserID         uuid.UUID
 	Name           string
 	Description    string
-	Tags           valueobject.StringArray
+	Tags           valueobject.Tags
 	NextRevisionAt time.Time
 }
 
@@ -58,7 +58,7 @@ func NewReviseItem(args NewReviseItemArgs) (*ReviseItem, error) {
 	if err := validateDescription(args.Description); err != nil {
 		return nil, err
 	}
-	args.Tags = args.Tags.TrimSpace()
+	args.Tags.Normalize()
 	if err := validateTags(args.Tags); err != nil {
 		return nil, err
 	}
@@ -102,7 +102,7 @@ func (r *ReviseItem) UpdateDescription(description string) error {
 	return nil
 }
 
-func (r *ReviseItem) UpdateTags(tags valueobject.StringArray) error {
+func (r *ReviseItem) UpdateTags(tags valueobject.Tags) error {
 	if err := validateTags(tags); err != nil {
 		return err
 	}

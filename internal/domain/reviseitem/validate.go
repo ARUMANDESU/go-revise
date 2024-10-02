@@ -50,7 +50,7 @@ func validateDescription(description string) error {
 	return nil
 }
 
-func validateTags(tags valueobject.StringArray) error {
+func validateTags(tags valueobject.Tags) error {
 	tags = tags.TrimSpace()
 	err := validation.Validate(tags,
 		validation.Length(0, maxNumTags).Error(fmt.Sprintf("tags must be between 0 and %d", maxNumTags)),
