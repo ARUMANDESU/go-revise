@@ -8,8 +8,9 @@ import (
 )
 
 var (
-	ErrInvalidUserID = errors.New("invalid userID")
-	ErrInvalidChatID = errors.New("invalid chatID")
+	ErrInvalidUserID     = errors.New("invalid userID")
+	ErrInvalidChatID     = errors.New("invalid chatID")
+	ErrInvalidIdentifier = errors.New("invalid identifier")
 )
 
 // OptionFunc is a function that applies an option to a user.
@@ -17,6 +18,10 @@ var (
 type OptionFunc func(*User) error
 
 type TelegramID int64
+
+func (t TelegramID) IsValid() bool {
+	return t != 0
+}
 
 func NewUserID() uuid.UUID {
 	return uuid.Must(uuid.NewV7())
