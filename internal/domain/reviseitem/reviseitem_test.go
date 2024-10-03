@@ -177,12 +177,12 @@ func TestReviseItem_UpdateTags(t *testing.T) {
 		},
 		{
 			name:    "With empty tags",
-			newTags: nil,
+			newTags: valueobject.NewTags(),
 			wantErr: false,
 		},
 		{
 			name:    "With a lot of tags",
-			newTags: moreTags(t),
+			newTags: valueobject.ExampleInValidTags(),
 			wantErr: true,
 		},
 	}
@@ -293,14 +293,8 @@ func assertReviseItem(t *testing.T, got, want *ReviseItem) {
 func assertTags(t *testing.T, got, want valueobject.Tags) {
 	t.Helper()
 
-	if len(got) != len(want) {
-		t.Errorf("got: %v, want: %v", got, want)
-	}
-	// Check if the tags are the same, but the order can be different.
-	for _, tag := range got {
-		if !want.Contains(tag) {
-			t.Errorf("got: %v, want: %v", got, want)
-		}
+	if !valueobject.IsTagsEqual(&got, &want) {
+		t.Errorf("got tags: %v, want tags: %v", got, want)
 	}
 }
 
@@ -335,7 +329,7 @@ func invalidNewReviseItemArgs(t *testing.T, reviseID, userID uuid.UUID) NewRevis
 		UserID:         userID,
 		Name:           longName(t),
 		Description:    longDescription(t),
-		Tags:           moreTags(t),
+		Tags:           valueobject.ExampleInValidTags(),
 		NextRevisionAt: time.Time{},
 	}
 }

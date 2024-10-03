@@ -18,17 +18,17 @@ func TestNewTags(t *testing.T) {
 		{
 			name: "With tags",
 			tags: []string{"tag1", "tag2"},
-			want: Tags{"tag1", "tag2"},
+			want: Tags{[]string{"tag1", "tag2"}},
 		},
 		{
 			name: "With empty tags",
 			tags: []string{},
-			want: nil,
+			want: Tags{},
 		},
 		{
 			name: "With nil tags",
 			tags: nil,
-			want: nil,
+			want: Tags{},
 		},
 	}
 
@@ -36,6 +36,61 @@ func TestNewTags(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			got := NewTags(tt.tags...)
 			t.Run(fmt.Sprintf("Expected %v", tt.want), assertTags(got, tt.want))
+		})
+	}
+}
+
+func TestIsTagsEqual(t *testing.T) {
+	t.Parallel()
+
+	tests := []struct {
+		name     string
+		a        Tags
+		b        Tags
+		expected bool
+	}{
+		{
+			name:     "With equal tags",
+			a:        Tags{[]string{"tag1", "tag2"}},
+			b:        Tags{[]string{"tag1", "tag2"}},
+			expected: true,
+		},
+		{
+			name:     "With different tags",
+			a:        Tags{[]string{"tag1", "tag2"}},
+			b:        Tags{[]string{"tag1", "tag3"}},
+			expected: false,
+		},
+		{
+			name:     "With nil tags",
+			a:        Tags{},
+			b:        Tags{},
+			expected: true,
+		},
+		{
+			name:     "With empty tags",
+			a:        Tags{},
+			b:        Tags{},
+			expected: true,
+		},
+		{
+			name:     "With nil and empty tags",
+			a:        Tags{},
+			b:        Tags{[]string{}},
+			expected: true,
+		},
+		{
+			name:     "With empty and nil tags",
+			a:        Tags{[]string{}},
+			b:        Tags{},
+			expected: true,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			got := IsTagsEqual(&tt.a, &tt.b)
+			t.Run(fmt.Sprintf("Expected %v", tt.expected), subtest.Value(got).CompareEqual(tt.expected))
 		})
 	}
 }
@@ -51,19 +106,19 @@ func TestTags_Contains(t *testing.T) {
 	}{
 		{
 			name:     "With existing tag",
-			t:        Tags{"tag1", "tag2"},
+			t:        Tags{[]string{"tag1", "tag2"}},
 			want:     "tag1",
 			expected: true,
 		},
 		{
 			name:     "With non-existing tag",
-			t:        Tags{"tag1", "tag2"},
+			t:        Tags{[]string{"tag1", "tag2"}},
 			want:     "tag3",
 			expected: false,
 		},
 		{
 			name:     "With nil tags",
-			t:        nil,
+			t:        Tags{},
 			want:     "tag1",
 			expected: false,
 		},
@@ -75,7 +130,7 @@ func TestTags_Contains(t *testing.T) {
 		},
 		{
 			name:     "With empty tag",
-			t:        Tags{"tag1", "tag2"},
+			t:        Tags{[]string{"tag1", "tag2"}},
 			want:     "",
 			expected: false,
 		},
@@ -106,21 +161,21 @@ func TestTags_Add(t *testing.T) {
 	}{
 		{
 			name: "With existing tag",
-			t:    Tags{"tag1", "tag2"},
+			t:    Tags{[]string{"tag1", "tag2"}},
 			tag:  "tag1",
-			want: Tags{"tag1", "tag2"},
+			want: Tags{[]string{"tag1", "tag2"}},
 		},
 		{
 			name: "With new tag",
-			t:    Tags{"tag1", "tag2"},
+			t:    Tags{[]string{"tag1", "tag2"}},
 			tag:  "tag3",
-			want: Tags{"tag1", "tag2", "tag3"},
+			want: Tags{[]string{"tag1", "tag2", "tag3"}},
 		},
 		{
 			name: "With empty tag",
-			t:    Tags{"tag1", "tag2"},
+			t:    Tags{[]string{"tag1", "tag2"}},
 			tag:  "",
-			want: Tags{"tag1", "tag2"},
+			want: Tags{[]string{"tag1", "tag2"}},
 		},
 		{
 			name: "With empty tag and empty tags",
@@ -130,15 +185,15 @@ func TestTags_Add(t *testing.T) {
 		},
 		{
 			name: "With nil tags",
-			t:    nil,
+			t:    Tags{},
 			tag:  "tag1",
-			want: Tags{"tag1"},
+			want: Tags{[]string{"tag1"}},
 		},
 		{
 			name: "With empty tags",
 			t:    Tags{},
 			tag:  "tag1",
-			want: Tags{"tag1"},
+			want: Tags{[]string{"tag1"}},
 		},
 		{
 			name: "With empty tag and empty tags",
@@ -167,33 +222,33 @@ func TestTags_AddMany(t *testing.T) {
 	}{
 		{
 			name: "With existing tags",
-			t:    Tags{"tag1", "tag2"},
+			t:    Tags{[]string{"tag1", "tag2"}},
 			tags: []string{"tag1", "tag2"},
-			want: Tags{"tag1", "tag2"},
+			want: Tags{[]string{"tag1", "tag2"}},
 		},
 		{
 			name: "With new tags",
-			t:    Tags{"tag1", "tag2"},
+			t:    Tags{[]string{"tag1", "tag2"}},
 			tags: []string{"tag3", "tag4"},
-			want: Tags{"tag1", "tag2", "tag3", "tag4"},
+			want: Tags{[]string{"tag1", "tag2", "tag3", "tag4"}},
 		},
 		{
 			name: "With empty tags",
-			t:    Tags{"tag1", "tag2"},
+			t:    Tags{[]string{"tag1", "tag2"}},
 			tags: []string{},
-			want: Tags{"tag1", "tag2"},
+			want: Tags{[]string{"tag1", "tag2"}},
 		},
 		{
 			name: "With nil tags",
-			t:    nil,
+			t:    Tags{},
 			tags: []string{"tag1", "tag2"},
-			want: Tags{"tag1", "tag2"},
+			want: Tags{[]string{"tag1", "tag2"}},
 		},
 		{
 			name: "With empty tags",
 			t:    Tags{},
 			tags: []string{"tag1", "tag2"},
-			want: Tags{"tag1", "tag2"},
+			want: Tags{[]string{"tag1", "tag2"}},
 		},
 		{
 			name: "With empty tags and empty tags",
@@ -203,15 +258,15 @@ func TestTags_AddMany(t *testing.T) {
 		},
 		{
 			name: "With existing and new tags",
-			t:    Tags{"tag1", "tag2"},
+			t:    Tags{[]string{"tag1", "tag2"}},
 			tags: []string{"tag2", "tag3"},
-			want: Tags{"tag1", "tag2", "tag3"},
+			want: Tags{[]string{"tag1", "tag2", "tag3"}},
 		},
 		{
 			name: "With same tags",
-			t:    Tags{"tag1", "tag2"},
+			t:    Tags{[]string{"tag1", "tag2"}},
 			tags: []string{"tag1", "tag2", "tag2", "tag1"},
-			want: Tags{"tag1", "tag2"},
+			want: Tags{[]string{"tag1", "tag2"}},
 		},
 	}
 
@@ -234,27 +289,27 @@ func TestTags_Remove(t *testing.T) {
 	}{
 		{
 			name: "With existing tag",
-			t:    Tags{"tag1", "tag2"},
+			t:    Tags{[]string{"tag1", "tag2"}},
 			tag:  "tag1",
-			want: Tags{"tag2"},
+			want: Tags{[]string{"tag2"}},
 		},
 		{
 			name: "With non-existing tag",
-			t:    Tags{"tag1", "tag2"},
+			t:    Tags{[]string{"tag1", "tag2"}},
 			tag:  "tag3",
-			want: Tags{"tag1", "tag2"},
+			want: Tags{[]string{"tag1", "tag2"}},
 		},
 		{
 			name: "With empty tag",
-			t:    Tags{"tag1", "tag2"},
+			t:    Tags{[]string{"tag1", "tag2"}},
 			tag:  "",
-			want: Tags{"tag1", "tag2"},
+			want: Tags{[]string{"tag1", "tag2"}},
 		},
 		{
 			name: "With nil tags",
-			t:    nil,
+			t:    Tags{},
 			tag:  "tag1",
-			want: nil,
+			want: Tags{},
 		},
 		{
 			name: "With empty tags",
@@ -289,27 +344,27 @@ func TestTags_RemoveMany(t *testing.T) {
 	}{
 		{
 			name: "With existing tags",
-			t:    Tags{"tag1", "tag2", "tag3", "tag4"},
+			t:    Tags{[]string{"tag1", "tag2", "tag3", "tag4"}},
 			tags: []string{"tag1", "tag2"},
-			want: Tags{"tag3", "tag4"},
+			want: Tags{[]string{"tag3", "tag4"}},
 		},
 		{
 			name: "With non-existing tags",
-			t:    Tags{"tag1", "tag2", "tag3", "tag4"},
+			t:    Tags{[]string{"tag1", "tag2", "tag3", "tag4"}},
 			tags: []string{"tag5", "tag6"},
-			want: Tags{"tag1", "tag2", "tag3", "tag4"},
+			want: Tags{[]string{"tag1", "tag2", "tag3", "tag4"}},
 		},
 		{
 			name: "With empty tags",
-			t:    Tags{"tag1", "tag2", "tag3", "tag4"},
+			t:    Tags{[]string{"tag1", "tag2", "tag3", "tag4"}},
 			tags: []string{},
-			want: Tags{"tag1", "tag2", "tag3", "tag4"},
+			want: Tags{[]string{"tag1", "tag2", "tag3", "tag4"}},
 		},
 		{
 			name: "With nil tags",
-			t:    nil,
+			t:    Tags{},
 			tags: []string{"tag1", "tag2"},
-			want: nil,
+			want: Tags{},
 		},
 		{
 			name: "With empty tags",
@@ -343,12 +398,12 @@ func TestTags_IsValid(t *testing.T) {
 	}{
 		{
 			name:     "With existing tags",
-			t:        Tags{"tag1", "tag2"},
+			t:        Tags{[]string{"tag1", "tag2"}},
 			expected: true,
 		},
 		{
 			name:     "With nil tags",
-			t:        nil,
+			t:        Tags{},
 			expected: false,
 		},
 		{
@@ -376,18 +431,18 @@ func TestTags_TrimSpace(t *testing.T) {
 	}{
 		{
 			name: "With existing tags",
-			t:    Tags{" tag1", "tag2 ", " tag3 "},
-			want: Tags{"tag1", "tag2", "tag3"},
+			t:    Tags{[]string{" tag1", "tag2 ", " tag3 "}},
+			want: Tags{[]string{"tag1", "tag2", "tag3"}},
 		},
 		{
 			name: "With nil tags",
-			t:    nil,
-			want: nil,
+			t:    Tags{},
+			want: Tags{},
 		},
 		{
 			name: "With empty tags",
 			t:    Tags{},
-			want: nil,
+			want: Tags{},
 		},
 	}
 
@@ -409,18 +464,18 @@ func TestTags_Unique(t *testing.T) {
 	}{
 		{
 			name: "With existing tags",
-			t:    Tags{"tag1", "tag2", "tag1", "tag2"},
-			want: Tags{"tag1", "tag2"},
+			t:    Tags{[]string{"tag1", "tag2", "tag1", "tag2"}},
+			want: Tags{[]string{"tag1", "tag2"}},
 		},
 		{
 			name: "With nil tags",
-			t:    nil,
-			want: nil,
+			t:    Tags{},
+			want: Tags{},
 		},
 		{
 			name: "With empty tags",
 			t:    Tags{},
-			want: nil,
+			want: Tags{},
 		},
 	}
 
@@ -442,13 +497,13 @@ func TestTags_Normalize(t *testing.T) {
 	}{
 		{
 			name: "With existing tags",
-			t:    Tags{"tag1", "tag2 ", " tag1", " tag2 "},
-			want: Tags{"tag1", "tag2"},
+			t:    Tags{[]string{"tag1", "tag2 ", " tag1", " tag2 "}},
+			want: Tags{[]string{"tag1", "tag2"}},
 		},
 		{
 			name: "With nil tags",
-			t:    nil,
-			want: nil,
+			t:    Tags{},
+			want: Tags{},
 		},
 		{
 			name: "With empty tags",
@@ -470,11 +525,11 @@ func assertTags(got, want Tags) func(t *testing.T) {
 	return func(t *testing.T) {
 		t.Helper()
 
-		if len(got) != len(want) {
+		if len(got.tags) != len(want.tags) {
 			t.Errorf("got: %v, want: %v", got, want)
 		}
 		// Check if the tags are the same, but the order can be different.
-		for _, tag := range got {
+		for _, tag := range got.tags {
 			if !want.Contains(tag) {
 				t.Errorf("got: %v, want: %v", got, want)
 			}

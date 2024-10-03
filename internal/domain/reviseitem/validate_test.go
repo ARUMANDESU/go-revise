@@ -151,71 +151,6 @@ func TestValidateDescription_Invalid(t *testing.T) {
 	}
 }
 
-func TestValidateTags(t *testing.T) {
-	t.Parallel()
-
-	tests := []struct {
-		name string
-		tags valueobject.Tags
-	}{
-		{
-			name: "With valid tags",
-			tags: validTags(t),
-		},
-		{
-			name: "With space in tags",
-			tags: valueobject.Tags{"tag 1", "tag 2"},
-		},
-		{
-			name: "With spaces around tags",
-			tags: valueobject.Tags{" tag1 ", " tag2", "tag3 "},
-		},
-		{
-			name: "With no tags",
-			tags: valueobject.Tags{},
-		},
-		{
-			name: "With one tag",
-			tags: valueobject.Tags{"tag1"},
-		},
-	}
-
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			err := validateTags(tt.tags)
-			t.Run("Expect no error", subtest.Value(err).NoError())
-		})
-	}
-}
-
-func TestValidateTags_Invalid(t *testing.T) {
-	t.Parallel()
-
-	tests := []struct {
-		name string
-		tags valueobject.Tags
-		want error
-	}{
-		{
-			name: "With too many tags",
-			tags: moreTags(t),
-			want: ErrInvalidArgument,
-		},
-		{
-			name: "With too long tag",
-			tags: valueobject.Tags{longTag(t), "tag2"},
-			want: ErrInvalidArgument,
-		},
-	}
-
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			err := validateTags(tt.tags)
-			t.Run("Expect error", subtest.Value(err).ErrorIs(tt.want))
-		})
-	}
-}
-
 func TestValidateNextRevisionAt(t *testing.T) {
 	t.Parallel()
 
@@ -304,7 +239,7 @@ func validDescription(t *testing.T, lang language.Tag) string {
 func validTags(t *testing.T) valueobject.Tags {
 	t.Helper()
 
-	return valueobject.Tags{"tag1", "tag2"}
+	return valueobject.NewTags("tag1", "tag2", "tag3")
 }
 
 func validNextRevisionAt(t *testing.T) time.Time {
@@ -317,21 +252,4 @@ func longDescription(t *testing.T) string {
 	t.Helper()
 
 	return gofakeit.Sentence(maxDescriptionLength + 1)
-}
-
-func moreTags(t *testing.T) valueobject.Tags {
-	t.Helper()
-
-	tags := valueobject.Tags{}
-	for i := 0; i < maxNumTags+1; i++ {
-		tags = append(tags, gofakeit.Word())
-	}
-
-	return tags
-}
-
-func longTag(t *testing.T) string {
-	t.Helper()
-
-	return strings.Repeat("a", maxTagLength+1)
 }

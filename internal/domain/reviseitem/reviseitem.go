@@ -58,8 +58,7 @@ func NewReviseItem(args NewReviseItemArgs) (*ReviseItem, error) {
 	if err := validateDescription(args.Description); err != nil {
 		return nil, err
 	}
-	args.Tags.Normalize()
-	if err := validateTags(args.Tags); err != nil {
+	if err := valueobject.ValidateTags(args.Tags); err != nil {
 		return nil, err
 	}
 	if err := validateNextRevisionAt(args.NextRevisionAt); err != nil {
@@ -103,7 +102,7 @@ func (r *ReviseItem) UpdateDescription(description string) error {
 }
 
 func (r *ReviseItem) UpdateTags(tags valueobject.Tags) error {
-	if err := validateTags(tags); err != nil {
+	if err := valueobject.ValidateTags(tags); err != nil {
 		return err
 	}
 
