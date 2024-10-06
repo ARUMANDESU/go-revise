@@ -119,6 +119,7 @@ The bot uses the [Spaced repetition](https://en.wikipedia.org/wiki/Spaced_repeti
 ## Structure
 
 ![structure.png](assets/structure.png)
+![app_structure.png](assets/app_structure.png)
 
 
 
