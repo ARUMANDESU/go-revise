@@ -162,7 +162,7 @@ func TestReviseItem_UpdateDescription(t *testing.T) {
 	}
 }
 
-func TestReviseItem_UpdateTags(t *testing.T) {
+func TestReviseItem_AddTags(t *testing.T) {
 	t.Parallel()
 
 	tests := []struct {
@@ -178,7 +178,7 @@ func TestReviseItem_UpdateTags(t *testing.T) {
 		{
 			name:    "With empty tags",
 			newTags: valueobject.NewTags(),
-			wantErr: false,
+			wantErr: true,
 		},
 		{
 			name:    "With a lot of tags",
@@ -191,7 +191,7 @@ func TestReviseItem_UpdateTags(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			reviseItem := validReviseItem(t)
 
-			err := reviseItem.UpdateTags(tt.newTags)
+			err := reviseItem.AddTags(tt.newTags)
 			if tt.wantErr {
 				t.Run("Expect error", subtest.Value(err).Error())
 			} else {
@@ -199,6 +199,56 @@ func TestReviseItem_UpdateTags(t *testing.T) {
 				t.Run("Expect tags to be updated", func(t *testing.T) {
 					tt.newTags = tt.newTags.TrimSpace()
 					assert.Equal(t, tt.newTags, reviseItem.tags)
+				})
+			}
+		})
+	}
+}
+
+func TestReviseItem_RemoveTags(t *testing.T) {
+	t.Parallel()
+
+	tests := []struct {
+		name       string
+		reviseItem *ReviseItem
+		tags       valueobject.Tags
+		expected   valueobject.Tags
+		wantErr    bool
+	}{
+		{
+			name:       "With valid tags",
+			reviseItem: validReviseItem(t),
+			tags:       validTags(t),
+			expected:   valueobject.NewTags(),
+			wantErr:    false,
+		},
+		{
+			name:       "With empty tags",
+			reviseItem: validReviseItem(t),
+			tags:       valueobject.NewTags(),
+			expected:   valueobject.NewTags(),
+			wantErr:    true,
+		},
+		{
+			name: "With invalid long tag",
+			reviseItem: &ReviseItem{
+				tags: valueobject.NewTags(valueobject.ExampleInvalidTag),
+			},
+			tags:     valueobject.NewTags(valueobject.ExampleInvalidTag),
+			expected: valueobject.NewTags(),
+			wantErr:  false,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			err := tt.reviseItem.RemoveTags(tt.tags)
+			if tt.wantErr {
+				t.Run("Expect error", subtest.Value(err).Error())
+			} else {
+				t.Run("Expect no error", subtest.Value(err).NoError())
+				t.Run("Expect tags to be updated", func(t *testing.T) {
+					assertTags(t, tt.reviseItem.tags, tt.expected)
 				})
 			}
 		})

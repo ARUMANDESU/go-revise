@@ -7,6 +7,7 @@ import (
 	"github.com/gofrs/uuid"
 
 	"github.com/ARUMANDESU/go-revise/internal/domain/valueobject"
+	"github.com/ARUMANDESU/go-revise/pkg/errs"
 )
 
 // ReviseItem represents a revise item.
@@ -102,6 +103,9 @@ func (r *ReviseItem) UpdateDescription(description string) error {
 }
 
 func (r *ReviseItem) AddTags(tags valueobject.Tags) error {
+	if !tags.IsValid() {
+		return errs.NewIncorrectInputError("invalid tags", "invalid-tags")
+	}
 	if err := valueobject.ValidateTags(tags); err != nil {
 		return err
 	}
@@ -113,6 +117,10 @@ func (r *ReviseItem) AddTags(tags valueobject.Tags) error {
 }
 
 func (r *ReviseItem) RemoveTags(tags valueobject.Tags) error {
+	if !tags.IsValid() {
+		return errs.NewIncorrectInputError("invalid tags", "invalid-tags")
+	}
+
 	r.tags.RemoveTags(tags)
 	r.updatedAt = time.Now()
 
