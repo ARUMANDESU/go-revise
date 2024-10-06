@@ -41,7 +41,7 @@ func (h *NewReviseItemHandler) Handle(ctx context.Context, cmd NewReviseItem) er
 		return err
 	}
 
-	if err := h.repo.Save(ctx, *item); err != nil {
+	if err := h.repo.Save(ctx, *reviseitem.NewAggregate(item)); err != nil {
 		return err
 	}
 

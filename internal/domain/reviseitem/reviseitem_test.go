@@ -275,6 +275,61 @@ func TestReviseItem_Restore(t *testing.T) {
 	})
 }
 
+func TestReviseItem_CanBeDeleted(t *testing.T) {
+	t.Parallel()
+
+	userID := domainUser.NewUserID()
+	otherUserID := domainUser.NewUserID()
+
+	tests := []struct {
+		name       string
+		reviseItem *ReviseItem
+		userID     uuid.UUID
+		want       bool
+	}{
+		{
+			name: "With matching userID and not deleted",
+			reviseItem: &ReviseItem{
+				userID: userID,
+			},
+			userID: userID,
+			want:   true,
+		},
+		{
+			name: "With non-matching userID",
+			reviseItem: &ReviseItem{
+				userID: userID,
+			},
+			userID: otherUserID,
+			want:   false,
+		},
+		{
+			name: "With matching userID but already deleted",
+			reviseItem: &ReviseItem{
+				userID:    userID,
+				deletedAt: &time.Time{},
+			},
+			userID: userID,
+			want:   false,
+		},
+		{
+			name: "With nil userID",
+			reviseItem: &ReviseItem{
+				userID: userID,
+			},
+			userID: uuid.UUID{},
+			want:   false,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			got := tt.reviseItem.CanBeDeleted(tt.userID)
+			assert.Equal(t, tt.want, got)
+		})
+	}
+}
+
 func assertReviseItem(t *testing.T, got, want *ReviseItem) {
 	t.Helper()
 
