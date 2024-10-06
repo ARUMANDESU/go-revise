@@ -46,25 +46,21 @@ func (a Application) NotifyUsers(ctx context.Context) error {
 	}
 
 	for _, user := range users {
-		var reviseItems []reviseitem.Aggregate
 		err = retry.Do(func() error {
-			var err error
-			reviseItems, err = a.ReviseItemProvider.FetchReviseItemsDueForUser(ctx, user.ID())
+			reviseItems, err := a.ReviseItemProvider.FetchReviseItemsDueForUser(ctx, user.ID())
 			if err != nil {
 				return fmt.Errorf("failed to fetch revise items for user %s: %w", user.ID(), err)
 			}
-			return nil
-		}, retry.WithMaxRetries(3))
-		if err != nil {
-			return err
-		}
 
-		err = retry.Do(func() error {
-			if err := a.Notifier.Notify(ctx, user, reviseItems); err != nil {
+			err = a.Notifier.Notify(ctx, user, reviseItems)
+			if err != nil {
 				return fmt.Errorf("failed to notify user %s: %w", user.ID(), err)
 			}
 			return nil
-		}, retry.WithMaxRetries(3))
+		}, retry.WithMaxRetries(6))
+		if err != nil {
+			return err
+		}
 	}
 
 	return nil
