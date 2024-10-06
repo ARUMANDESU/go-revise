@@ -24,7 +24,7 @@ func NewDeleteReviseItemHandler(repo reviseitem.Repository) *DeleteReviseItemHan
 
 func (h *DeleteReviseItemHandler) Handle(ctx context.Context, cmd DeleteReviseItem) error {
 	err := h.repo.Update(ctx, cmd.ID, func(item *reviseitem.Aggregate) (*reviseitem.Aggregate, error) {
-		if !item.CanBeDeleted(cmd.UserID) {
+		if !item.CanModify(cmd.UserID) {
 			return nil, fmt.Errorf("revise item cannot be deleted")
 		}
 

@@ -135,6 +135,6 @@ func (r *ReviseItem) Restore() {
 	r.updatedAt = time.Now()
 }
 
-func (r *ReviseItem) CanBeDeleted(userID uuid.UUID) bool {
-	return r.userID == userID && r.deletedAt == nil
+func (r *ReviseItem) CanModify(userID uuid.UUID) bool {
+	return r.userID == userID
 }
