@@ -101,12 +101,19 @@ func (r *ReviseItem) UpdateDescription(description string) error {
 	return nil
 }
 
-func (r *ReviseItem) UpdateTags(tags valueobject.Tags) error {
+func (r *ReviseItem) AddTags(tags valueobject.Tags) error {
 	if err := valueobject.ValidateTags(tags); err != nil {
 		return err
 	}
 
-	r.tags = tags
+	r.tags.AddTags(tags)
+	r.updatedAt = time.Now()
+
+	return nil
+}
+
+func (r *ReviseItem) RemoveTags(tags valueobject.Tags) error {
+	r.tags.RemoveTags(tags)
 	r.updatedAt = time.Now()
 
 	return nil

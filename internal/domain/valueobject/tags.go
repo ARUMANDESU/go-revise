@@ -34,6 +34,10 @@ func IsTagsEqual(a, b *Tags) bool {
 	return true
 }
 
+func (t *Tags) StringArray() []string {
+	return t.tags
+}
+
 // Contains checks if the given tag exists in the list of tags.
 func (t *Tags) Contains(want string) bool {
 	if t == nil || len(t.tags) == 0 || want == "" {
@@ -73,6 +77,11 @@ func (t *Tags) AddMany(tags ...string) {
 	}
 }
 
+// AddTags adds multiple tags to the list.
+func (t *Tags) AddTags(tags Tags) {
+	t.AddMany(tags.tags...)
+}
+
 // Remove removes a tag from the list.
 // If the tag does not exist, it will not be removed.
 func (t *Tags) Remove(tag string) {
@@ -96,6 +105,11 @@ func (t *Tags) RemoveMany(tags ...string) {
 	for _, tag := range tags {
 		t.Remove(tag)
 	}
+}
+
+// RemoveTags removes multiple tags from the list.
+func (t *Tags) RemoveTags(tags Tags) {
+	t.RemoveMany(tags.tags...)
 }
 
 // IsValid checks if the tags list is valid.
