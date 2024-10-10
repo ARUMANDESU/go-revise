@@ -14,6 +14,6 @@ func NewAggregate(item *ReviseItem) *Aggregate {
 	return &Aggregate{ReviseItem: *item}
 }
 
-func (a *Aggregate) AddRevision(rev revision.Revision) {
-	a.Revisions = append(a.Revisions, rev)
+func (a *Aggregate) Review() {
+	a.Revisions = append(a.Revisions, *revision.NewRevision())
 }
