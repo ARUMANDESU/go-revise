@@ -1,0 +1,3 @@
+DROP TABLE IF EXISTS revise_items;
+DROP TABLE IF EXISTS users;
+DROP TABLE IF EXISTS revisions;
