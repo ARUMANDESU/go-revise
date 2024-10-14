@@ -17,11 +17,11 @@ type Repository struct {
 }
 
 // SaveUser provides a mock function with given fields: ctx, u
-func (_m *Repository) SaveUser(ctx context.Context, u user.User) error {
+func (_m *Repository) CreateUser(ctx context.Context, u user.User) error {
 	ret := _m.Called(ctx, u)
 
 	if len(ret) == 0 {
-		panic("no return value specified for SaveUser")
+		panic("no return value specified for CreateUser")
 	}
 
 	var r0 error

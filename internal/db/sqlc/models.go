@@ -15,11 +15,11 @@ type ReviseItem struct {
 	Name           string
 	Description    sql.NullString
 	Tags           sql.NullString
-	CreatedAt      sql.NullTime
-	UpdatedAt      sql.NullTime
+	CreatedAt      time.Time
+	UpdatedAt      time.Time
 	DeletedAt      sql.NullTime
-	LastRivisedAt  sql.NullTime
-	NextRevisionAt sql.NullTime
+	LastRivisedAt  time.Time
+	NextRevisionAt time.Time
 }
 
 type Revision struct {
@@ -29,6 +29,10 @@ type Revision struct {
 }
 
 type User struct {
-	ID     string
-	ChatID int64
+	ID           string
+	ChatID       int64
+	CreatedAt    time.Time
+	UpdatedAt    time.Time
+	Language     sql.NullString
+	ReminderTime string
 }

@@ -6,14 +6,12 @@ import (
 	"golang.org/x/text/language"
 )
 
-var (
-	ErrInvalidSettings = errors.New("invalid settings")
-)
+var ErrInvalidSettings = errors.New("invalid settings")
 
 // Settings represents user settings.
 type Settings struct {
-	language     language.Tag
-	reminderTime ReminderTime
+	Language     language.Tag
+	ReminderTime ReminderTime
 }
 
 func NewSettings(lang *language.Tag, reminderTime ReminderTime) (Settings, error) {
@@ -25,16 +23,16 @@ func NewSettings(lang *language.Tag, reminderTime ReminderTime) (Settings, error
 	}
 
 	return Settings{
-		language:     *lang,
-		reminderTime: reminderTime,
+		Language:     *lang,
+		ReminderTime: reminderTime,
 	}, nil
 }
 
 // DefaultSettings returns default user settings.
 func DefaultSettings() Settings {
 	return Settings{
-		language:     DefaultLanguage(),
-		reminderTime: DefaultReminderTime(),
+		Language:     DefaultLanguage(),
+		ReminderTime: DefaultReminderTime(),
 	}
 }
 
@@ -43,7 +41,7 @@ func (s *Settings) IsValid() bool {
 		return false
 	}
 
-	return s.language != language.Und && s.reminderTime.IsValid()
+	return s.Language != language.Und && s.ReminderTime.IsValid()
 }
 
 func DefaultLanguage() language.Tag {
