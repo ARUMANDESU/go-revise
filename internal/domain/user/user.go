@@ -40,6 +40,10 @@ func (u *User) ID() uuid.UUID {
 	return u.id
 }
 
+func (u *User) ChatID() TelegramID {
+	return u.chatID
+}
+
 func (u *User) UpdateSettings(settings Settings) error {
 	if !settings.IsValid() {
 		return ErrInvalidSettings
