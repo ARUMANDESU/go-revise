@@ -7,7 +7,7 @@ import (
 // Aggregate represents a revise item aggregate.
 type Aggregate struct {
 	ReviseItem
-	Revisions []revision.Revision
+	revisions []revision.Revision
 }
 
 func NewAggregate(item *ReviseItem) *Aggregate {
@@ -15,5 +15,9 @@ func NewAggregate(item *ReviseItem) *Aggregate {
 }
 
 func (a *Aggregate) Review() {
-	a.Revisions = append(a.Revisions, *revision.NewRevision())
+	a.revisions = append(a.revisions, *revision.NewRevision())
+}
+
+func (a *Aggregate) Revisions() []revision.Revision {
+	return a.revisions
 }

@@ -22,6 +22,14 @@ type Revision struct {
 	// Notes        string // maybe in the future
 }
 
+func (r *Revision) ID() uuid.UUID {
+	return r.id
+}
+
+func (r *Revision) RevisedAt() time.Time {
+	return r.revisedAt
+}
+
 func NewRevisionID() uuid.UUID {
 	return uuid.Must(uuid.NewV7())
 }

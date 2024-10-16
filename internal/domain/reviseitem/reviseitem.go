@@ -80,6 +80,46 @@ func NewReviseItem(args NewReviseItemArgs) (*ReviseItem, error) {
 
 }
 
+func (r *ReviseItem) ID() uuid.UUID {
+	return r.id
+}
+
+func (r *ReviseItem) UserID() uuid.UUID {
+	return r.userID
+}
+
+func (r *ReviseItem) Name() string {
+	return r.name
+}
+
+func (r *ReviseItem) Description() string {
+	return r.description
+}
+
+func (r *ReviseItem) Tags() valueobject.Tags {
+	return r.tags
+}
+
+func (r *ReviseItem) CreatedAt() time.Time {
+	return r.createdAt
+}
+
+func (r *ReviseItem) UpdatedAt() time.Time {
+	return r.updatedAt
+}
+
+func (r *ReviseItem) DeletedAt() *time.Time {
+	return r.deletedAt
+}
+
+func (r *ReviseItem) NextRevisionAt() time.Time {
+	return r.nextRevisionAt
+}
+
+func (r *ReviseItem) LastRevisedAt() time.Time {
+	return r.lastRevisedAt
+}
+
 func (r *ReviseItem) UpdateName(name string) error {
 	if err := validateName(name); err != nil {
 		return err
