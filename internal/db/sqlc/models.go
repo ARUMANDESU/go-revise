@@ -18,14 +18,14 @@ type ReviseItem struct {
 	CreatedAt      time.Time
 	UpdatedAt      time.Time
 	DeletedAt      sql.NullTime
-	LastRivisedAt  time.Time
+	LastRevisedAt  time.Time
 	NextRevisionAt time.Time
 }
 
 type Revision struct {
 	ID           string
 	ReviseItemID string
-	RevisedAd    time.Time
+	RevisedAt    time.Time
 }
 
 type User struct {

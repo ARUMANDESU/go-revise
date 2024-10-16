@@ -24,6 +24,6 @@ CREATE TABLE revise_items (
 CREATE TABLE revisions (
     id TEXT PRIMARY KEY, -- UUID
     revise_item_id TEXT NOT NULL, -- UUID
-    revised_ad TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    revised_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
     FOREIGN KEY (revise_item_id) REFERENCES revise_items(id)
 )
