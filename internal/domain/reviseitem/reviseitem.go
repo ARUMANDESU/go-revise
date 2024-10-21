@@ -77,7 +77,6 @@ func NewReviseItem(args NewReviseItemArgs) (*ReviseItem, error) {
 		updatedAt:      now,
 		nextRevisionAt: args.NextRevisionAt,
 	}, nil
-
 }
 
 func (r *ReviseItem) ID() uuid.UUID {
@@ -188,6 +187,10 @@ func (r *ReviseItem) MarkAsDeleted() {
 func (r *ReviseItem) Restore() {
 	r.deletedAt = nil
 	r.updatedAt = time.Now()
+}
+
+func (r *ReviseItem) IsOwner(userID uuid.UUID) bool {
+	return r.userID == userID
 }
 
 func (r *ReviseItem) CanModify(userID uuid.UUID) bool {
