@@ -11,10 +11,10 @@ type Application struct {
 }
 
 type Commands struct {
-	RegisterUser   command.RegisterUser
-	ChangeSettings command.ChangeSettings
+	RegisterUser   command.RegisterUserHandler
+	ChangeSettings command.ChangeSettingsHandler
 }
 
 type Queries struct {
-	GetUser query.GetUser
+	GetUser query.GetUserHandler
 }

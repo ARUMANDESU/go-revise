@@ -30,6 +30,10 @@ func (p Pagination) CurrentPage() int {
 	return p.page
 }
 
+func (p Pagination) Metadata(totalRecords int) PaginationMetadata {
+	return CalculatePaginationMetadata(totalRecords, p.page, p.pageSize)
+}
+
 // NewPagination creates a new `Pagination` struct with default values if none are provided.
 func NewPagination(page, pageSize int) Pagination {
 	if page <= 0 {

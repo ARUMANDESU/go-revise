@@ -18,11 +18,11 @@ type UserProvider interface {
 }
 
 type ReviseItemProvider interface {
-	FetchReviseItemsDueForUser(ctx context.Context, userID uuid.UUID) ([]reviseitem.Aggregate, error)
+	FetchReviseItemsDueForUser(ctx context.Context, userID uuid.UUID) ([]reviseitem.ReviseItem, error)
 }
 
 type Notifier interface {
-	Notify(ctx context.Context, user domainUser.User, reviseItems []reviseitem.Aggregate) error
+	Notify(ctx context.Context, user domainUser.User, reviseItems []reviseitem.ReviseItem) error
 }
 
 type Application struct {

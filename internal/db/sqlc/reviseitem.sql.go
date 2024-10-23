@@ -25,7 +25,7 @@ func (q *Queries) DeleteReviseItem(ctx context.Context, id string) error {
 const getReviseItem = `-- name: GetReviseItem :one
 SELECT id, user_id, name, description, tags, created_at, updated_at, deleted_at, last_revised_at, next_revision_at 
     FROM revise_items
-    WHERE id = ?
+    WHERE id = ? AND deleted_at IS NULL
 `
 
 func (q *Queries) GetReviseItem(ctx context.Context, id string) (ReviseItem, error) {
@@ -49,7 +49,7 @@ func (q *Queries) GetReviseItem(ctx context.Context, id string) (ReviseItem, err
 const getUserReviseItems = `-- name: GetUserReviseItems :many
 SELECT id, user_id, name, description, tags, created_at, updated_at, deleted_at, last_revised_at, next_revision_at 
     FROM revise_items
-    WHERE user_id = ?
+    WHERE user_id = ? AND deleted_at IS NULL
 `
 
 func (q *Queries) GetUserReviseItems(ctx context.Context, userID string) ([]ReviseItem, error) {
@@ -62,6 +62,114 @@ func (q *Queries) GetUserReviseItems(ctx context.Context, userID string) ([]Revi
 	for rows.Next() {
 		var i ReviseItem
 		if err := rows.Scan(
+			&i.ID,
+			&i.UserID,
+			&i.Name,
+			&i.Description,
+			&i.Tags,
+			&i.CreatedAt,
+			&i.UpdatedAt,
+			&i.DeletedAt,
+			&i.LastRevisedAt,
+			&i.NextRevisionAt,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Close(); err != nil {
+		return nil, err
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
+const getUserReviseItemsByTime = `-- name: GetUserReviseItemsByTime :many
+SELECT id, user_id, name, description, tags, created_at, updated_at, deleted_at, last_revised_at, next_revision_at
+    FROM revise_items
+    WHERE user_id = ? AND deleted_at IS NULL AND next_revision_at <= ?
+`
+
+type GetUserReviseItemsByTimeParams struct {
+	UserID         string
+	NextRevisionAt time.Time
+}
+
+func (q *Queries) GetUserReviseItemsByTime(ctx context.Context, arg GetUserReviseItemsByTimeParams) ([]ReviseItem, error) {
+	rows, err := q.db.QueryContext(ctx, getUserReviseItemsByTime, arg.UserID, arg.NextRevisionAt)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []ReviseItem
+	for rows.Next() {
+		var i ReviseItem
+		if err := rows.Scan(
+			&i.ID,
+			&i.UserID,
+			&i.Name,
+			&i.Description,
+			&i.Tags,
+			&i.CreatedAt,
+			&i.UpdatedAt,
+			&i.DeletedAt,
+			&i.LastRevisedAt,
+			&i.NextRevisionAt,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Close(); err != nil {
+		return nil, err
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
+const listUserReviseItems = `-- name: ListUserReviseItems :many
+SELECT COUNT(*), id, user_id, name, description, tags, created_at, updated_at, deleted_at, last_revised_at, next_revision_at
+    FROM revise_items
+    WHERE user_id = ? AND deleted_at IS NULL
+    ORDER BY created_at DESC
+    LIMIT ? OFFSET ?
+`
+
+type ListUserReviseItemsParams struct {
+	UserID string
+	Limit  int64
+	Offset int64
+}
+
+type ListUserReviseItemsRow struct {
+	Count          int64
+	ID             string
+	UserID         string
+	Name           string
+	Description    sql.NullString
+	Tags           sql.NullString
+	CreatedAt      time.Time
+	UpdatedAt      time.Time
+	DeletedAt      sql.NullTime
+	LastRevisedAt  time.Time
+	NextRevisionAt time.Time
+}
+
+func (q *Queries) ListUserReviseItems(ctx context.Context, arg ListUserReviseItemsParams) ([]ListUserReviseItemsRow, error) {
+	rows, err := q.db.QueryContext(ctx, listUserReviseItems, arg.UserID, arg.Limit, arg.Offset)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []ListUserReviseItemsRow
+	for rows.Next() {
+		var i ListUserReviseItemsRow
+		if err := rows.Scan(
+			&i.Count,
 			&i.ID,
 			&i.UserID,
 			&i.Name,
@@ -137,15 +245,15 @@ func (q *Queries) SaveReviseItem(ctx context.Context, arg SaveReviseItemParams) 
 	return err
 }
 
-const updateReviceItem = `-- name: UpdateReviceItem :exec
+const updateReviseItem = `-- name: UpdateReviseItem :exec
 UPDATE revise_items
     SET 
         name = ?, description = ?, tags = ?, created_at = ?, 
         updated_at = ?, last_revised_at = ?, next_revision_at = ?
-    WHERE id = ?
+    WHERE id = ? AND deleted_at IS NULL
 `
 
-type UpdateReviceItemParams struct {
+type UpdateReviseItemParams struct {
 	Name           string
 	Description    sql.NullString
 	Tags           sql.NullString
@@ -156,8 +264,8 @@ type UpdateReviceItemParams struct {
 	ID             string
 }
 
-func (q *Queries) UpdateReviceItem(ctx context.Context, arg UpdateReviceItemParams) error {
-	_, err := q.db.ExecContext(ctx, updateReviceItem,
+func (q *Queries) UpdateReviseItem(ctx context.Context, arg UpdateReviseItemParams) error {
+	_, err := q.db.ExecContext(ctx, updateReviseItem,
 		arg.Name,
 		arg.Description,
 		arg.Tags,
