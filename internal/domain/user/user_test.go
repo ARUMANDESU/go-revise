@@ -81,7 +81,7 @@ func TestNewUser(t *testing.T) {
 			})
 			if err == nil {
 				t.Run("Expect user", func(t *testing.T) {
-					AssertUser(t, got, tt.want)
+					AssertUser(t, *got, tt.want)
 				})
 			}
 		})

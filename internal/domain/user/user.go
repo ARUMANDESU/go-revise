@@ -44,6 +44,18 @@ func (u *User) ChatID() TelegramID {
 	return u.chatID
 }
 
+func (u *User) Settings() Settings {
+	return u.settings
+}
+
+func (u *User) CreatedAt() time.Time {
+	return u.createdAt
+}
+
+func (u *User) UpdatedAt() time.Time {
+	return u.updatedAt
+}
+
 func (u *User) UpdateSettings(settings Settings) error {
 	if !settings.IsValid() {
 		return ErrInvalidSettings
@@ -55,17 +67,13 @@ func (u *User) UpdateSettings(settings Settings) error {
 	return nil
 }
 
-func (u *User) Settings() Settings {
-	return u.settings
-}
-
-func NewUser(uid uuid.UUID, chatID TelegramID, options ...OptionFunc) (User, error) {
+func NewUser(uid uuid.UUID, chatID TelegramID, options ...OptionFunc) (*User, error) {
 	switch {
 	case uid == uuid.Nil:
-		return User{}, ErrInvalidUserID
+		return nil, ErrInvalidUserID
 	}
 	if !chatID.IsValid() {
-		return User{}, ErrInvalidChatID
+		return nil, ErrInvalidChatID
 	}
 
 	u := User{
@@ -78,17 +86,17 @@ func NewUser(uid uuid.UUID, chatID TelegramID, options ...OptionFunc) (User, err
 
 	for _, option := range options {
 		if err := option(&u); err != nil {
-			return User{}, err
+			return nil, err
 		}
 	}
 
-	return u, nil
+	return &u, nil
 }
 
 // MustNewUser creates a new user and panics if an error occurs.
 //
 //	Note: This function is intended for use in tests.
-func MustNewUser(uid uuid.UUID, chatID TelegramID, options ...OptionFunc) User {
+func MustNewUser(uid uuid.UUID, chatID TelegramID, options ...OptionFunc) *User {
 	u, err := NewUser(uid, chatID, options...)
 	if err != nil {
 		panic(err)
@@ -102,6 +110,20 @@ func WithSettings(settings Settings) OptionFunc {
 			return ErrInvalidSettings
 		}
 		u.settings = settings
+		return nil
+	}
+}
+
+func WithCreatedAt(t time.Time) OptionFunc {
+	return func(u *User) error {
+		u.createdAt = t
+		return nil
+	}
+}
+
+func WithUpdatedAt(t time.Time) OptionFunc {
+	return func(u *User) error {
+		u.updatedAt = t
 		return nil
 	}
 }

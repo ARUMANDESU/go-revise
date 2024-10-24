@@ -31,5 +31,5 @@ func (r RegisterUserHandler) Handle(ctx context.Context, cmd RegisterUser) error
 		return err
 	}
 
-	return r.userRepo.CreateUser(ctx, user)
+	return r.userRepo.CreateUser(ctx, *user)
 }

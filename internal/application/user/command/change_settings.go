@@ -10,7 +10,7 @@ import (
 )
 
 type UserProvider interface {
-	GetUserByTelegramID(ctx context.Context, id domainUser.TelegramID) (domainUser.User, error)
+	GetUserByTelegramID(ctx context.Context, id domainUser.TelegramID) (*domainUser.User, error)
 }
 
 // ChangeSettings represents a command to change user settings.

@@ -78,6 +78,42 @@ func (q *Queries) GetUserByID(ctx context.Context, id string) (User, error) {
 	return i, err
 }
 
+const getUsersByReminderTime = `-- name: GetUsersByReminderTime :many
+SELECT id, chat_id, created_at, updated_at, language, reminder_time
+    FROM users
+    WHERE reminder_time = ?
+`
+
+func (q *Queries) GetUsersByReminderTime(ctx context.Context, reminderTime string) ([]User, error) {
+	rows, err := q.db.QueryContext(ctx, getUsersByReminderTime, reminderTime)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []User
+	for rows.Next() {
+		var i User
+		if err := rows.Scan(
+			&i.ID,
+			&i.ChatID,
+			&i.CreatedAt,
+			&i.UpdatedAt,
+			&i.Language,
+			&i.ReminderTime,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Close(); err != nil {
+		return nil, err
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
 const updateUser = `-- name: UpdateUser :exec
 UPDATE users
     SET updated_at = ?, language = ?, reminder_time = ?

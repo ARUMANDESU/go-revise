@@ -10,7 +10,6 @@ import (
 //
 //go:generate mockery --name Repository --output mocks/
 type Repository interface {
-	// SaveUser saves a user.
 	CreateUser(ctx context.Context, u User) error
 	// UpdateUser updates user data.
 	// The updateFn function is called with the user data to be updated.

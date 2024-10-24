@@ -18,3 +18,8 @@ SELECT *
 UPDATE users
     SET updated_at = ?, language = ?, reminder_time = ?
     WHERE id = ?;
+
+-- name: GetUsersByReminderTime :many
+SELECT *
+    FROM users
+    WHERE reminder_time = ?;
