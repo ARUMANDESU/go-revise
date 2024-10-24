@@ -170,11 +170,11 @@ func modelToUser(u sqlc.User) (*user.User, error) {
 func modelsToUsers(models []sqlc.User) ([]user.User, error) {
 	users := make([]user.User, 0, len(models))
 	for _, model := range models {
-		user, err := modelToUser(model)
+		domainUser, err := modelToUser(model)
 		if err != nil {
 			return nil, err
 		}
-		users = append(users, *user)
+		users = append(users, *domainUser)
 	}
 
 	return users, nil
