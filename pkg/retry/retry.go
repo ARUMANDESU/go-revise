@@ -1,11 +1,18 @@
 package retry
 
+import "errors"
+
+const DefaultMaxRetries = 2
+
 type Option struct {
-	MaxRetries int
+	maxRetries int
 }
 
 func WithMaxRetries(maxRetries int) Option {
-	return Option{MaxRetries: maxRetries}
+	if maxRetries < 0 {
+		return Option{}
+	}
+	return Option{maxRetries: maxRetries}
 }
 
 // Do retries the function until it returns nil or the max retries is reached.
@@ -13,16 +20,17 @@ func WithMaxRetries(maxRetries int) Option {
 //
 // NOTE: default max retries is 2.
 func Do(fn func() error, opts Option) error {
-	if opts.MaxRetries == 0 {
-		opts.MaxRetries = 2
+	if opts.maxRetries <= 0 {
+		opts.maxRetries = DefaultMaxRetries
 	}
 
 	var err error
-	for i := 0; i < opts.MaxRetries; i++ {
-		err = fn()
-		if err == nil {
-			return nil
+	for i := 0; i < opts.maxRetries; i++ {
+		fnerr := fn()
+		if fnerr != nil {
+			err = errors.Join(err, fnerr)
 		}
 	}
+
 	return err
 }
