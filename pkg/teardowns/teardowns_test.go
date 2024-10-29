@@ -19,9 +19,10 @@ func TestFuncs_Append(t *testing.T) {
 		f Func
 	}
 	tests := []struct {
-		name string
-		tr   *Funcs
-		args args
+		name        string
+		tr          Funcs
+		args        args
+		expectedLen int
 	}{
 		{
 			name: "With valid function",
@@ -29,6 +30,7 @@ func TestFuncs_Append(t *testing.T) {
 			args: args{
 				f: NewValidFunc(t),
 			},
+			expectedLen: 1,
 		},
 		{
 			name: "With nil teardowns",
@@ -36,6 +38,7 @@ func TestFuncs_Append(t *testing.T) {
 			args: args{
 				f: NewValidFunc(t),
 			},
+			expectedLen: 1,
 		},
 		{
 			name: "With invalid function",
@@ -43,6 +46,7 @@ func TestFuncs_Append(t *testing.T) {
 			args: args{
 				f: NewInvalidFunc(t),
 			},
+			expectedLen: 1,
 		},
 	}
 
@@ -58,9 +62,10 @@ func TestFuncs_AppendMany(t *testing.T) {
 		fs []Func
 	}
 	tests := []struct {
-		name string
-		tr   *Funcs
-		args args
+		name        string
+		tr          Funcs
+		args        args
+		expectedLen int
 	}{
 		{
 			name: "With valid Funcs",
@@ -72,6 +77,7 @@ func TestFuncs_AppendMany(t *testing.T) {
 					NewValidFunc(t),
 				},
 			},
+			expectedLen: 3,
 		},
 		{
 			name: "With one invalid Func",
@@ -83,6 +89,7 @@ func TestFuncs_AppendMany(t *testing.T) {
 					NewValidFunc(t),
 				},
 			},
+			expectedLen: 3,
 		},
 		{
 			name: "With nil teardowns",
@@ -94,6 +101,7 @@ func TestFuncs_AppendMany(t *testing.T) {
 					NewValidFunc(t),
 				},
 			},
+			expectedLen: 3,
 		},
 	}
 	for _, tt := range tests {
@@ -106,7 +114,7 @@ func TestFuncs_AppendMany(t *testing.T) {
 func TestFuncs_Clear(t *testing.T) {
 	tests := []struct {
 		name string
-		tr   *Funcs
+		tr   Funcs
 	}{
 		{
 			name: "With empty teardowns",
@@ -118,14 +126,14 @@ func TestFuncs_Clear(t *testing.T) {
 		},
 		{
 			name: "With 2 teardowns",
-			tr: &Funcs{
+			tr: Funcs{
 				NewValidFunc(t),
 				NewValidFunc(t),
 			},
 		},
 		{
 			name: "With 2 invalid teardowns",
-			tr: &Funcs{
+			tr: Funcs{
 				NewInvalidFunc(t),
 				NewInvalidFunc(t),
 			},
@@ -141,13 +149,13 @@ func TestFuncs_Clear(t *testing.T) {
 func TestFuncs_Execute(t *testing.T) {
 	tests := []struct {
 		name    string
-		tr      *Funcs
+		tr      Funcs
 		wantErr bool
 		err     error
 	}{
 		{
 			name: "With valid Funcs",
-			tr: &Funcs{
+			tr: Funcs{
 				NewValidFunc(t),
 				NewValidFunc(t),
 				NewValidFunc(t),
@@ -156,7 +164,7 @@ func TestFuncs_Execute(t *testing.T) {
 		},
 		{
 			name: "With invalid Funcs",
-			tr: &Funcs{
+			tr: Funcs{
 				NewInvalidFunc(t),
 				NewInvalidFunc(t),
 				NewInvalidFunc(t),
@@ -186,11 +194,11 @@ func TestFuncs_Execute(t *testing.T) {
 func TestFuncs_ToTeardownFunc(t *testing.T) {
 	tests := []struct {
 		name string
-		tr   *Funcs
+		tr   Funcs
 	}{
 		{
 			name: "With valid Funcs",
-			tr: &Funcs{
+			tr: Funcs{
 				NewValidFunc(t),
 				NewValidFunc(t),
 				NewValidFunc(t),
@@ -198,7 +206,7 @@ func TestFuncs_ToTeardownFunc(t *testing.T) {
 		},
 		{
 			name: "With invalid Funcs",
-			tr: &Funcs{
+			tr: Funcs{
 				NewInvalidFunc(t),
 				NewInvalidFunc(t),
 				NewInvalidFunc(t),
@@ -218,7 +226,7 @@ func TestFuncs_ToTeardownFunc(t *testing.T) {
 			// copy teardowns so Execute dose not take effect on ToTeardownFunc
 			var trc Funcs
 			if tt.tr != nil {
-				trc = *tt.tr
+				trc = tt.tr
 			}
 
 			want := trc.Execute()

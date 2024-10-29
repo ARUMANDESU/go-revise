@@ -6,23 +6,21 @@ type Func func() error
 
 type Funcs []Func
 
-func New() *Funcs {
+func New() Funcs {
 	funcs := make(Funcs, 0)
-	return &funcs
+	return funcs
 }
 
 func (t *Funcs) Append(f Func) {
 	if t == nil {
-		temp := make(Funcs, 0)
-		t = &temp
+		return
 	}
 	*t = append(*t, f)
 }
 
 func (t *Funcs) AppendMany(fs ...Func) {
 	if t == nil {
-		temp := make(Funcs, 0, len(fs))
-		t = &temp
+		return
 	}
 	*t = append(*t, fs...)
 }
