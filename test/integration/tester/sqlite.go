@@ -4,6 +4,7 @@ import (
 	"database/sql"
 	"embed"
 	"os"
+	"testing"
 
 	adapterdb "github.com/ARUMANDESU/go-revise/internal/adapters/db"
 	"github.com/ARUMANDESU/go-revise/pkg/teardowns"
@@ -12,54 +13,45 @@ import (
 //go:embed migrations/*
 var MockDataMigrationsFS embed.FS
 
-var sqlite *Sqlite
+func NewSQLiteDB(t *testing.T) *sql.DB {
+	t.Helper()
 
-func GetSqlite() *Sqlite {
-	return sqlite
-}
-
-func SetupSqlite() error {
 	tds := teardowns.New()
+	defer t.Cleanup(func() {
+		err := tds.Execute()
+		if err != nil {
+			t.Error(err)
+		}
+	})
+	handleErr := func(err error) {
+		// we don't call teardowns execute because it's already in t.Cleanup
+		t.Fatal(err)
+	}
 
-	dbFilePath, err := adapterdb.GetFile("go-revise")
+	dbFileName := t.Name()
+	dbFilePath, err := adapterdb.GetFile(dbFileName)
 	if err != nil {
-		return err
+		handleErr(err)
+		return nil
 	}
 	tds.Append(func() error { return os.Remove(dbFilePath) })
 
 	db, err := adapterdb.NewSqlite(dbFilePath)
 	if err != nil {
-		return err
+		handleErr(err)
+		return nil
 	}
 	tds.Append(db.Close)
 
-	adapterdb.MigrateSchema(db, adapterdb.MigrationsFS, "", nil)
-	adapterdb.MigrateSchema(db, MockDataMigrationsFS, "test-mock", nil)
-
-	sqlite = &Sqlite{
-		db:        db,
-		teardowns: tds,
+	err = adapterdb.MigrateSchema(db, adapterdb.MigrationsFS, "", nil)
+	if err != nil {
+		handleErr(err)
+		return nil
 	}
-
-	return nil
-}
-
-type Sqlite struct {
-	db        *sql.DB
-	teardowns teardowns.Funcs
-}
-
-func newSqlite(db *sql.DB) *Sqlite {
-	return &Sqlite{
-		db: db,
+	err = adapterdb.MigrateSchema(db, MockDataMigrationsFS, "test-mock", nil)
+	if err != nil {
+		handleErr(err)
+		return nil
 	}
-}
-
-func (s *Sqlite) DB() *sql.DB {
-	return s.db
-}
-
-func (s *Sqlite) NewDB(dbName string) *sql.DB {
-	// @@TODO: create new database or scheme based on default one
-	return nil
+	return db
 }

@@ -7,7 +7,6 @@ require (
 	github.com/clarify/subtest v0.2.0
 	github.com/go-ozzo/ozzo-validation/v4 v4.3.0
 	github.com/gofrs/uuid v4.4.0+incompatible
-	github.com/golang-migrate/migrate v3.5.4+incompatible
 	github.com/golang-migrate/migrate/v4 v4.18.1
 	github.com/stretchr/testify v1.9.0
 	go.uber.org/multierr v1.11.0

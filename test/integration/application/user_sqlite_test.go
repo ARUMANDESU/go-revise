@@ -10,10 +10,15 @@ import (
 	"github.com/ARUMANDESU/go-revise/test/integration/tester"
 )
 
+func TestUserApp_RegisterUser(t *testing.T) {
+}
+
 func NewUserApplication(t *testing.T) userapp.Application {
 	t.Helper()
-	sqliteDB := tester.GetSqlite()
-	userRepo := repository.NewSQLiteRepo(sqliteDB.DB())
+
+	db := tester.NewSQLiteDB(t)
+	userRepo := repository.NewSQLiteRepo(db)
+
 	return userapp.Application{
 		Commands: userapp.Commands{
 			RegisterUser:   usercommand.NewRegisterUserHandler(&userRepo),
