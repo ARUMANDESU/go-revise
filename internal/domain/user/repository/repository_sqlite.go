@@ -9,8 +9,8 @@ import (
 
 	"github.com/gofrs/uuid"
 
+	"github.com/ARUMANDESU/go-revise/internal/adapters/db/sqlc"
 	"github.com/ARUMANDESU/go-revise/internal/application/user/query"
-	"github.com/ARUMANDESU/go-revise/internal/db/sqlc"
 	"github.com/ARUMANDESU/go-revise/internal/domain/user"
 	"github.com/ARUMANDESU/go-revise/pkg/pointers"
 )

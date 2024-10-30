@@ -9,8 +9,8 @@ import (
 
 	"github.com/gofrs/uuid"
 
+	"github.com/ARUMANDESU/go-revise/internal/adapters/db/sqlc"
 	"github.com/ARUMANDESU/go-revise/internal/application/reviseitem/query"
-	"github.com/ARUMANDESU/go-revise/internal/db/sqlc"
 	"github.com/ARUMANDESU/go-revise/internal/domain/valueobject"
 	"github.com/ARUMANDESU/go-revise/pkg/pointers"
 )
@@ -88,8 +88,11 @@ func (r *SqliteRepo) Update(ctx context.Context, id uuid.UUID, fn UpdateFn) (err
 
 	tags := aggregate.Tags()
 	return qtx.UpdateReviseItem(ctx, sqlc.UpdateReviseItemParams{
-		Name:           aggregate.Name(),
-		Description:    sql.NullString{String: aggregate.Description(), Valid: aggregate.Description() != ""},
+		Name: aggregate.Name(),
+		Description: sql.NullString{
+			String: aggregate.Description(),
+			Valid:  aggregate.Description() != "",
+		},
 		Tags:           stringArrToString(tags.StringArray()),
 		CreatedAt:      aggregate.CreatedAt(),
 		UpdatedAt:      aggregate.UpdatedAt(),
@@ -159,7 +162,10 @@ func (r *SqliteRepo) ListUserReviseItems(
 
 // --- Query read models implementation ---
 
-func (r *SqliteRepo) GetReviseItem(ctx context.Context, id, userID uuid.UUID) (query.ReviseItem, error) {
+func (r *SqliteRepo) GetReviseItem(
+	ctx context.Context,
+	id, userID uuid.UUID,
+) (query.ReviseItem, error) {
 	q := sqlc.New(r.db)
 
 	reviseItemModel, err := q.GetReviseItem(ctx, id.String())
@@ -200,7 +206,10 @@ func (r *SqliteRepo) GetReviseItem(ctx context.Context, id, userID uuid.UUID) (q
 	return reviseItem, nil
 }
 
-func (r *SqliteRepo) FetchReviseItemsDueForUser(ctx context.Context, userID uuid.UUID) ([]ReviseItem, error) {
+func (r *SqliteRepo) FetchReviseItemsDueForUser(
+	ctx context.Context,
+	userID uuid.UUID,
+) ([]ReviseItem, error) {
 	q := sqlc.New(r.db)
 
 	dayStart := time.Now().Truncate(24 * time.Hour)
