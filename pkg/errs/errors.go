@@ -26,7 +26,7 @@ type MsgError struct {
 
 func (s MsgError) Error() string {
 	if s.err != nil {
-		return fmt.Sprintf("op: %s, type: %s, error: %v", s.op, s.errType.t, s.err)
+		return fmt.Sprintf("op: %s, type: %s, msg: %s, error: %v", s.op, s.errType.t, s.msg, s.err)
 	}
 	return fmt.Sprintf("op: %s, type: %s", s.op, s.errType.t)
 }
@@ -61,6 +61,7 @@ func (e *MsgError) As(target interface{}) bool {
 
 func NewMsgError(op string, err error, msg string) MsgError {
 	return MsgError{
+		op:      op,
 		err:     err,
 		msg:     msg,
 		errType: ErrorTypeUnknown,
@@ -69,6 +70,7 @@ func NewMsgError(op string, err error, msg string) MsgError {
 
 func NewAuthorizationError(op string, err error, msg string) MsgError {
 	return MsgError{
+		op:      op,
 		err:     err,
 		msg:     msg,
 		errType: ErrorTypeAuthorization,
@@ -77,6 +79,7 @@ func NewAuthorizationError(op string, err error, msg string) MsgError {
 
 func NewIncorrectInputError(op string, err error, msg string) MsgError {
 	return MsgError{
+		op:      op,
 		err:     err,
 		msg:     msg,
 		errType: ErrorTypeIncorrectInput,
@@ -85,6 +88,7 @@ func NewIncorrectInputError(op string, err error, msg string) MsgError {
 
 func NewNotFoundError(op string, err error, msg string) MsgError {
 	return MsgError{
+		op:      op,
 		err:     err,
 		msg:     msg,
 		errType: ErrorTypeNotFound,
@@ -93,6 +97,7 @@ func NewNotFoundError(op string, err error, msg string) MsgError {
 
 func NewConflictError(op string, err error, msg string) MsgError {
 	return MsgError{
+		op:      op,
 		err:     err,
 		msg:     msg,
 		errType: ErrorTypeConflict,

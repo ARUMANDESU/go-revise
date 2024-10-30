@@ -35,15 +35,19 @@ func NewSqlite(filePath string) (*sql.DB, error) {
 //	migrationTable is the name of the table to store migration information, by default it is "migrations"
 //	nSteps is the number of steps to migrate, if nil, all migrations will be applied
 func MigrateSchema(
-	db *sql.DB,
+	filePath string,
 	migrationsFs embed.FS,
 	migrationTable string,
 	nSteps *int,
 ) error {
-	const op = "storage.sqlite.migrate_schema"
+	const op = "adapters.db.sqlite"
 
 	if migrationTable == "" {
 		migrationTable = "migrations"
+	}
+	db, err := sql.Open("sqlite", filePath)
+	if err != nil {
+		return errs.NewMsgError(op, err, "failed to open sqlite connection")
 	}
 
 	migrateDriver, err := sqlite.WithInstance(db, &sqlite.Config{

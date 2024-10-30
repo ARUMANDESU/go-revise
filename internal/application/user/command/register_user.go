@@ -8,7 +8,6 @@ import (
 
 type RegisterUser struct {
 	ChatID   domainUser.TelegramID `json:"chat_id"`
-	Language string                `json:"language"`
 	Settings *domainUser.Settings  `json:"settings"`
 }
 

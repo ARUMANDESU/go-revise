@@ -3,7 +3,9 @@ package tester
 import (
 	"database/sql"
 	"embed"
+	"fmt"
 	"os"
+	"strings"
 	"testing"
 
 	adapterdb "github.com/ARUMANDESU/go-revise/internal/adapters/db"
@@ -28,29 +30,35 @@ func NewSQLiteDB(t *testing.T) *sql.DB {
 		t.Fatal(err)
 	}
 
-	dbFileName := t.Name()
+	dbFileName := strings.ReplaceAll(t.Name(), "/", "-") + ".db"
 	dbFilePath, err := adapterdb.GetFile(dbFileName)
 	if err != nil {
-		handleErr(err)
+		handleErr(fmt.Errorf("failed to get/create db file path/file: %w", err))
 		return nil
 	}
 	tds.Append(func() error { return os.Remove(dbFilePath) })
 
 	db, err := adapterdb.NewSqlite(dbFilePath)
 	if err != nil {
-		handleErr(err)
+		handleErr(fmt.Errorf("failed to create new new sqlite db: %w", err))
 		return nil
 	}
 	tds.Append(db.Close)
 
-	err = adapterdb.MigrateSchema(db, adapterdb.MigrationsFS, "", nil)
+	err = db.Ping()
 	if err != nil {
-		handleErr(err)
+		handleErr(fmt.Errorf("failed to ping db: %w", err))
 		return nil
 	}
-	err = adapterdb.MigrateSchema(db, MockDataMigrationsFS, "test-mock", nil)
+
+	err = adapterdb.MigrateSchema(dbFilePath, adapterdb.MigrationsFS, "", nil)
 	if err != nil {
-		handleErr(err)
+		handleErr(fmt.Errorf("failed to migrate init: %w", err))
+		return nil
+	}
+	err = adapterdb.MigrateSchema(dbFilePath, MockDataMigrationsFS, "test_mock", nil)
+	if err != nil {
+		handleErr(fmt.Errorf("failed to migrate mock data: %w", err))
 		return nil
 	}
 	return db

@@ -12,6 +12,7 @@ import (
 	"github.com/ARUMANDESU/go-revise/internal/adapters/db/sqlc"
 	"github.com/ARUMANDESU/go-revise/internal/application/user/query"
 	"github.com/ARUMANDESU/go-revise/internal/domain/user"
+	"github.com/ARUMANDESU/go-revise/pkg/errs"
 	"github.com/ARUMANDESU/go-revise/pkg/pointers"
 )
 
@@ -25,6 +26,8 @@ func NewSQLiteRepo(db *sql.DB) SQLiteRepo {
 
 // CreateUser creates a new user.
 func (r *SQLiteRepo) CreateUser(ctx context.Context, u user.User) (_ error) {
+	const op = "domain.user.sqlite.create_user"
+
 	params := sqlc.CreateUserParams{
 		ID:        u.ID().String(),
 		ChatID:    int64(u.ChatID()),
@@ -35,7 +38,7 @@ func (r *SQLiteRepo) CreateUser(ctx context.Context, u user.User) (_ error) {
 
 	err := sqlc.New(r.db).CreateUser(ctx, params)
 	if err != nil {
-		return err
+		return errs.NewMsgError(op, err, "failed to create new user")
 	}
 
 	return nil
@@ -48,9 +51,11 @@ func (r *SQLiteRepo) UpdateUser(
 	userID uuid.UUID,
 	updateFn func(*user.User) (*user.User, error),
 ) (_ error) {
+	const op = "domain.user.sqlite.update_user"
+
 	tx, err := r.db.BeginTx(ctx, nil)
 	if err != nil {
-		return err
+		return errs.NewMsgError(op, err, "failed to begin transaction")
 	}
 	defer func() {
 		if err != nil {
@@ -64,12 +69,12 @@ func (r *SQLiteRepo) UpdateUser(
 	qtx := sqlc.New(tx)
 	userModel, err := qtx.GetUserByID(ctx, userID.String())
 	if err != nil {
-		return err
+		return errs.NewMsgError(op, err, "failed to get user by id")
 	}
 
 	domainUser, err := modelToUser(userModel)
 	if err != nil {
-		return err
+		return errs.NewMsgError(op, err, "failed to convert user model to domain")
 	}
 
 	domainUser, err = updateFn(domainUser)
@@ -85,13 +90,15 @@ func (r *SQLiteRepo) UpdateUser(
 		ID:           userModel.ID,
 	})
 	if err != nil {
-		return err
+		return errs.NewMsgError(op, err, "failed to update user")
 	}
 
 	return tx.Commit()
 }
 
 func (r *SQLiteRepo) GetUsersForNotification(ctx context.Context) ([]user.User, error) {
+	const op = "domain.user.sqlite.get_users_for_notification"
+
 	q := sqlc.New(r.db)
 
 	reminderTimeModel := reminderTimeToModel(user.ReminderTime{
@@ -100,18 +107,19 @@ func (r *SQLiteRepo) GetUsersForNotification(ctx context.Context) ([]user.User, 
 	})
 	userModels, err := q.GetUsersByReminderTime(ctx, reminderTimeModel)
 	if err != nil {
-		return nil, err
+		return nil, errs.NewMsgError(op, err, "failed to get users by reminder time")
 	}
 
 	return modelsToUsers(userModels)
 }
 
 func (r *SQLiteRepo) GetUserByID(ctx context.Context, id uuid.UUID) (query.User, error) {
+	const op = "domain.user.sqlite.get_user_by_id"
 	q := sqlc.New(r.db)
 
 	userModel, err := q.GetUserByID(ctx, id.String())
 	if err != nil {
-		return query.User{}, err
+		return query.User{}, errs.NewMsgError(op, err, "failed to get user by id")
 	}
 
 	return modelToQueryUser(userModel)
@@ -121,11 +129,12 @@ func (r *SQLiteRepo) GetUserByChatID(
 	ctx context.Context,
 	chatID user.TelegramID,
 ) (query.User, error) {
+	const op = "domain.user.sqlite.get_user_by_chat_id"
 	q := sqlc.New(r.db)
 
 	userModel, err := q.GetUserByChatID(ctx, int64(chatID))
 	if err != nil {
-		return query.User{}, err
+		return query.User{}, errs.NewMsgError(op, err, "failed to get user by chat id")
 	}
 
 	return modelToQueryUser(userModel)
@@ -135,11 +144,12 @@ func (r *SQLiteRepo) GetUserByTelegramID(
 	ctx context.Context,
 	id user.TelegramID,
 ) (*user.User, error) {
+	const op = "domain.user.sqlite.get_user_by_telegram_id"
 	q := sqlc.New(r.db)
 
 	userModel, err := q.GetUserByChatID(ctx, int64(id))
 	if err != nil {
-		return nil, err
+		return nil, errs.NewMsgError(op, err, "failed to get user by telegram id")
 	}
 
 	return modelToUser(userModel)
