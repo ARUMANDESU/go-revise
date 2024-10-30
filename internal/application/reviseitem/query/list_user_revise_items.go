@@ -2,6 +2,7 @@ package query
 
 import (
 	"context"
+	"errors"
 
 	"github.com/gofrs/uuid"
 
@@ -36,9 +37,11 @@ func (h ListUserReviseItemsHandler) Handle(
 	ctx context.Context,
 	query ListUserReviseItems,
 ) ([]ReviseItem, valueobject.PaginationMetadata, error) {
+	const op = "reviseitem.query.list_user_revise_items"
 	if query.UserID.IsNil() {
 		return nil, valueobject.PaginationMetadata{}, errs.NewIncorrectInputError(
-			"user_id must not be nil",
+			op,
+			errors.New("user_id must not be nil"),
 			"user_id-must-not-be-nil",
 		)
 	}

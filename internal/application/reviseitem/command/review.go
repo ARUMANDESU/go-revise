@@ -2,6 +2,7 @@ package command
 
 import (
 	"context"
+	"errors"
 
 	"github.com/gofrs/uuid"
 
@@ -23,14 +24,20 @@ func NewReviewHandler(repo reviseitem.Repository) *ReviewHandler {
 }
 
 func (h *ReviewHandler) Handle(ctx context.Context, cmd Review) error {
+	const op = "reviseitem.command.review"
 	if cmd.ID.IsNil() {
 		return errs.NewIncorrectInputError(
-			"revise item id must be provided",
+			op,
+			errors.New("revise item id must be provided"),
 			"revise-item-id-must-be-provided",
 		)
 	}
 	if cmd.UserID.IsNil() {
-		return errs.NewIncorrectInputError("user_id must be provided", "user_id-must-be-provided")
+		return errs.NewIncorrectInputError(
+			op,
+			errors.New("user_id must be provided"),
+			"user_id-must-be-provided",
+		)
 	}
 
 	return h.repo.Update(
@@ -39,7 +46,8 @@ func (h *ReviewHandler) Handle(ctx context.Context, cmd Review) error {
 		func(ri *reviseitem.Aggregate) (*reviseitem.Aggregate, error) {
 			if ri.CanModify(cmd.UserID) {
 				return nil, errs.NewAuthorizationError(
-					"not authorized to review",
+					op,
+					errors.New("not authorized to review"),
 					"not-authorized-to-review",
 				)
 			}

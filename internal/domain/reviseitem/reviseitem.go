@@ -1,6 +1,7 @@
 package reviseitem
 
 import (
+	"errors"
 	"strings"
 	"time"
 
@@ -142,8 +143,9 @@ func (r *ReviseItem) UpdateDescription(description string) error {
 }
 
 func (r *ReviseItem) AddTags(tags valueobject.Tags) error {
+	const op = "domain.reviseitem.add_tags"
 	if !tags.IsValid() {
-		return errs.NewIncorrectInputError("invalid tags", "invalid-tags")
+		return errs.NewIncorrectInputError(op, errors.New("invalid tags"), "invalid-tags")
 	}
 	if err := valueobject.ValidateTags(tags); err != nil {
 		return err
@@ -156,8 +158,9 @@ func (r *ReviseItem) AddTags(tags valueobject.Tags) error {
 }
 
 func (r *ReviseItem) RemoveTags(tags valueobject.Tags) error {
+	const op = "domain.reviseitem.remove_tags"
 	if !tags.IsValid() {
-		return errs.NewIncorrectInputError("invalid tags", "invalid-tags")
+		return errs.NewIncorrectInputError(op, errors.New("invalid tags"), "invalid-tags")
 	}
 
 	r.tags.RemoveTags(tags)

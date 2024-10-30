@@ -19,6 +19,10 @@ type SQLiteRepo struct {
 	db *sql.DB
 }
 
+func NewSQLiteRepo(db *sql.DB) SQLiteRepo {
+	return SQLiteRepo{db: db}
+}
+
 // CreateUser creates a new user.
 func (r *SQLiteRepo) CreateUser(ctx context.Context, u user.User) (_ error) {
 	params := sqlc.CreateUserParams{
@@ -113,7 +117,10 @@ func (r *SQLiteRepo) GetUserByID(ctx context.Context, id uuid.UUID) (query.User,
 	return modelToQueryUser(userModel)
 }
 
-func (r *SQLiteRepo) GetUserByChatID(ctx context.Context, chatID user.TelegramID) (query.User, error) {
+func (r *SQLiteRepo) GetUserByChatID(
+	ctx context.Context,
+	chatID user.TelegramID,
+) (query.User, error) {
 	q := sqlc.New(r.db)
 
 	userModel, err := q.GetUserByChatID(ctx, int64(chatID))
@@ -124,7 +131,10 @@ func (r *SQLiteRepo) GetUserByChatID(ctx context.Context, chatID user.TelegramID
 	return modelToQueryUser(userModel)
 }
 
-func (r *SQLiteRepo) GetUserByTelegramID(ctx context.Context, id user.TelegramID) (*user.User, error) {
+func (r *SQLiteRepo) GetUserByTelegramID(
+	ctx context.Context,
+	id user.TelegramID,
+) (*user.User, error) {
 	q := sqlc.New(r.db)
 
 	userModel, err := q.GetUserByChatID(ctx, int64(id))

@@ -1,5 +1,10 @@
 package errs
 
+import (
+	"errors"
+	"fmt"
+)
+
 type ErrorType struct {
 	t string
 }
@@ -12,60 +17,84 @@ var (
 	ErrorTypeConflict       = ErrorType{"conflict"}
 )
 
-type SlugError struct {
-	error     string
-	slug      string
-	errorType ErrorType
+type MsgError struct {
+	err     error
+	op      string
+	msg     string
+	errType ErrorType
 }
 
-func (s SlugError) Error() string {
-	return s.error
+func (s MsgError) Error() string {
+	if s.err != nil {
+		return fmt.Sprintf("op: %s, type: %s, error: %v", s.op, s.errType.t, s.err)
+	}
+	return fmt.Sprintf("op: %s, type: %s", s.op, s.errType.t)
 }
 
-func (s SlugError) Slug() string {
-	return s.slug
+func (s MsgError) Message() string {
+	return fmt.Sprintf("%s: %s: %v", s.errType.t, s.msg, s.err)
 }
 
-func (s SlugError) ErrorType() ErrorType {
-	return s.errorType
+// Unwrap provides compatibility for Go 1.13+ error wrapping.
+// It returns the underlying error, allowing for inspection of wrapped errors.
+func (e *MsgError) Unwrap() error {
+	return e.err
 }
 
-func NewSlugError(error string, slug string) SlugError {
-	return SlugError{
-		error:     error,
-		slug:      slug,
-		errorType: ErrorTypeUnknown,
+// Is checks if the error matches a target error, particularly useful for comparing types.
+func (e *MsgError) Is(target error) bool {
+	t, ok := target.(*MsgError)
+	if !ok {
+		return false
+	}
+	return e.errType.t == t.errType.t
+}
+
+// As allows the error to be cast to a target type.
+func (e *MsgError) As(target interface{}) bool {
+	if t, ok := target.(**MsgError); ok {
+		*t = e
+		return true
+	}
+	return errors.As(e.err, target)
+}
+
+func NewMsgError(op string, err error, msg string) MsgError {
+	return MsgError{
+		err:     err,
+		msg:     msg,
+		errType: ErrorTypeUnknown,
 	}
 }
 
-func NewAuthorizationError(error string, slug string) SlugError {
-	return SlugError{
-		error:     error,
-		slug:      slug,
-		errorType: ErrorTypeAuthorization,
+func NewAuthorizationError(op string, err error, msg string) MsgError {
+	return MsgError{
+		err:     err,
+		msg:     msg,
+		errType: ErrorTypeAuthorization,
 	}
 }
 
-func NewIncorrectInputError(error string, slug string) SlugError {
-	return SlugError{
-		error:     error,
-		slug:      slug,
-		errorType: ErrorTypeIncorrectInput,
+func NewIncorrectInputError(op string, err error, msg string) MsgError {
+	return MsgError{
+		err:     err,
+		msg:     msg,
+		errType: ErrorTypeIncorrectInput,
 	}
 }
 
-func NewNotFoundError(error string, slug string) SlugError {
-	return SlugError{
-		error:     error,
-		slug:      slug,
-		errorType: ErrorTypeNotFound,
+func NewNotFoundError(op string, err error, msg string) MsgError {
+	return MsgError{
+		err:     err,
+		msg:     msg,
+		errType: ErrorTypeNotFound,
 	}
 }
 
-func NewConflictError(error string, slug string) SlugError {
-	return SlugError{
-		error:     error,
-		slug:      slug,
-		errorType: ErrorTypeConflict,
+func NewConflictError(op string, err error, msg string) MsgError {
+	return MsgError{
+		err:     err,
+		msg:     msg,
+		errType: ErrorTypeConflict,
 	}
 }

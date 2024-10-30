@@ -52,11 +52,16 @@ func DefaultReviewIntervals() ReviewInterval {
 
 // ParseReviewInterval parses the review interval from a string separated by spaces.
 func ParseReviewInterval(interval string) (ReviewInterval, error) {
+	const op = "valueobject.parse_review_interval"
 	intervals := [maxReviewIntervals]time.Duration{}
 	split := splitInterval(interval)
 
 	if len(split) > maxReviewIntervals {
-		return ReviewInterval{}, errs.NewIncorrectInputError(fmt.Sprintf("too many values provided, max is %d", maxReviewIntervals), "too-many-values")
+		return ReviewInterval{}, errs.NewIncorrectInputError(
+			op,
+			fmt.Errorf("too many values provided, max is %d", maxReviewIntervals),
+			"too-many-values",
+		)
 	}
 
 	for i, v := range split {
@@ -82,12 +87,17 @@ func splitInterval(interval string) []string {
 
 // parseDuration parses the duration from a string with a number followed by a time unit.
 func parseDuration(interval string) (time.Duration, error) {
+	const op = "valueobject.parse_duration"
 	value := interval[:len(interval)-1]
 	unit := interval[len(interval)-1:]
 
 	floatValue, err := strconv.ParseFloat(value, 64)
 	if err != nil {
-		return 0, errs.NewIncorrectInputError(fmt.Sprintf("invalid value type: %s", value), "invalid-value-type")
+		return 0, errs.NewIncorrectInputError(
+			op,
+			fmt.Errorf("invalid value type: %s", value),
+			"invalid-value-type",
+		)
 	}
 
 	var duration time.Duration
@@ -105,7 +115,11 @@ func parseDuration(interval string) (time.Duration, error) {
 	case yearCharacter:
 		duration = time.Duration(floatValue * float64(time.Hour) * 24 * 365)
 	default:
-		return 0, errs.NewIncorrectInputError(fmt.Sprintf("invalid time unit: %s", unit), "invalid-time-unit")
+		return 0, errs.NewIncorrectInputError(
+			op,
+			fmt.Errorf("invalid time unit: %s", unit),
+			"invalid-time-unit",
+		)
 	}
 
 	return duration, nil
