@@ -46,8 +46,13 @@ func TestUserApp_RegisterUser(t *testing.T) {
 			)
 			require.NoError(t, err, "failed to get user")
 
-			assert.Equal(t, tt.cmd.ChatID, queryUser.ChatID)
-			assert.Equal(t, tt.cmd.Settings, queryUser.Settings)
+			assert.Equal(t, tt.cmd.ChatID, user.TelegramID(queryUser.ChatID))
+			assert.Equal(t, tt.cmd.Settings.ReminderTime.Hour, queryUser.Settings.ReminderTime.Hour)
+			assert.Equal(
+				t,
+				tt.cmd.Settings.ReminderTime.Minute,
+				queryUser.Settings.ReminderTime.Minute,
+			)
 		})
 	}
 }

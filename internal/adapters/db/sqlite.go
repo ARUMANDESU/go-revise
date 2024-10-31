@@ -20,7 +20,7 @@ var MigrationsFS embed.FS
 func NewSqlite(filePath string) (*sql.DB, error) {
 	const op = "db.sqlite.new_slite"
 
-	db, err := sql.Open("sqlite", filePath)
+	db, err := sql.Open("sqlite3", filePath)
 	if err != nil {
 		return nil, errs.NewMsgError(op, err, "failed to connect to sqlite database")
 	}
@@ -45,7 +45,7 @@ func MigrateSchema(
 	if migrationTable == "" {
 		migrationTable = "migrations"
 	}
-	db, err := sql.Open("sqlite", filePath)
+	db, err := sql.Open("sqlite3", filePath)
 	if err != nil {
 		return errs.NewMsgError(op, err, "failed to open sqlite connection")
 	}

@@ -3,11 +3,14 @@ package repository
 import (
 	"context"
 	"database/sql"
+	"errors"
 	"fmt"
 	"log"
+	"strings"
 	"time"
 
 	"github.com/gofrs/uuid"
+	"github.com/mattn/go-sqlite3"
 
 	"github.com/ARUMANDESU/go-revise/internal/adapters/db/sqlc"
 	"github.com/ARUMANDESU/go-revise/internal/application/user/query"
@@ -28,16 +31,33 @@ func NewSQLiteRepo(db *sql.DB) SQLiteRepo {
 func (r *SQLiteRepo) CreateUser(ctx context.Context, u user.User) (_ error) {
 	const op = "domain.user.sqlite.create_user"
 
+	reminderTime := fmt.Sprintf(
+		"%d:%d",
+		u.Settings().ReminderTime.Hour,
+		u.Settings().ReminderTime.Minute,
+	)
 	params := sqlc.CreateUserParams{
-		ID:        u.ID().String(),
-		ChatID:    int64(u.ChatID()),
-		CreatedAt: u.CreatedAt(),
-		UpdatedAt: u.UpdatedAt(),
-		Language:  sql.NullString{String: u.Settings().Language.String(), Valid: true},
+		ID:           u.ID().String(),
+		ChatID:       int64(u.ChatID()),
+		CreatedAt:    u.CreatedAt(),
+		UpdatedAt:    u.UpdatedAt(),
+		Language:     sql.NullString{String: u.Settings().Language.String(), Valid: true},
+		ReminderTime: reminderTime,
 	}
 
 	err := sqlc.New(r.db).CreateUser(ctx, params)
 	if err != nil {
+		var sqliteErr sqlite3.Error
+		if errors.As(err, &sqliteErr) {
+			switch {
+			case
+				errors.Is(sqliteErr.Code, sqlite3.ErrConstraint),
+				errors.Is(sqliteErr.Code, sqlite3.ErrConstraintUnique):
+				return errs.NewConflictError(op, err, "user already exists")
+			case errors.Is(sqliteErr.Code, sqlite3.ErrConstraintNotNull):
+				return errs.NewIncorrectInputError(op, err, "missing required fields")
+			}
+		}
 		return errs.NewMsgError(op, err, "failed to create new user")
 	}
 
@@ -137,7 +157,11 @@ func (r *SQLiteRepo) GetUserByChatID(
 		return query.User{}, errs.NewMsgError(op, err, "failed to get user by chat id")
 	}
 
-	return modelToQueryUser(userModel)
+	queryUser, err := modelToQueryUser(userModel)
+	if err != nil {
+		return query.User{}, errs.NewMsgError(op, err, "failed to convert user model into query")
+	}
+	return queryUser, nil
 }
 
 func (r *SQLiteRepo) GetUserByTelegramID(
@@ -201,9 +225,15 @@ func modelsToUsers(models []sqlc.User) ([]user.User, error) {
 }
 
 func modelToQueryUser(u sqlc.User) (query.User, error) {
+	const op = "domain.user.sqlite.model_to_query_user"
+
 	reminderTime, err := modelToReminderTime(u.ReminderTime)
 	if err != nil {
-		return query.User{}, err
+		return query.User{}, errs.NewMsgError(
+			op,
+			err,
+			"failed to convert reminder time model into domain",
+		)
 	}
 
 	var language string
@@ -231,13 +261,30 @@ func reminderTimeToModel(rt user.ReminderTime) string {
 }
 
 func modelToReminderTime(rt string) (user.ReminderTime, error) {
+	const op = "domain.user.sqlite.model_to_reminder_time"
+	rt = strings.TrimSpace(rt)
+	if rt == "" {
+		return user.ReminderTime{}, errs.NewMsgError(
+			op,
+			fmt.Errorf("reminder time is empty, have to be in this format: HOUR:MINUTE"),
+			"reminder time is empty",
+		)
+	}
 	var hour, minute uint8
 	parsed, err := fmt.Sscanf(rt, "%d:%d", &hour, &minute)
 	if err != nil {
-		return user.ReminderTime{}, err
+		return user.ReminderTime{}, errs.NewMsgError(
+			op,
+			err,
+			fmt.Sprintf("failed to parse model reminder time, model: %s", rt),
+		)
 	}
 	if parsed != 2 {
-		return user.ReminderTime{}, err
+		return user.ReminderTime{}, errs.NewMsgError(
+			op,
+			err,
+			"number of parsed items are not equal to 2",
+		)
 	}
 
 	return user.ReminderTime{Hour: hour, Minute: minute}, nil

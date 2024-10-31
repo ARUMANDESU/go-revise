@@ -1,6 +1,6 @@
 CREATE TABLE users (
     id TEXT PRIMARY KEY, -- UUID
-    chat_id INTEGER NOT NULL,
+    chat_id INTEGER NOT NULL UNIQUE,
     created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
     language TEXT, -- did not yet figured it out how to store language @@TODO

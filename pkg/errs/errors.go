@@ -24,43 +24,43 @@ type MsgError struct {
 	errType ErrorType
 }
 
-func (s MsgError) Error() string {
+func (s *MsgError) Error() string {
 	if s.err != nil {
 		return fmt.Sprintf("op: %s, type: %s, msg: %s, error: %v", s.op, s.errType.t, s.msg, s.err)
 	}
 	return fmt.Sprintf("op: %s, type: %s", s.op, s.errType.t)
 }
 
-func (s MsgError) Message() string {
-	return fmt.Sprintf("%s: %s: %v", s.errType.t, s.msg, s.err)
+func (s *MsgError) Message() string {
+	return fmt.Sprintf("%s: %s", s.errType.t, s.msg)
 }
 
 // Unwrap provides compatibility for Go 1.13+ error wrapping.
 // It returns the underlying error, allowing for inspection of wrapped errors.
-func (e *MsgError) Unwrap() error {
-	return e.err
+func (s *MsgError) Unwrap() error {
+	return s.err
 }
 
 // Is checks if the error matches a target error, particularly useful for comparing types.
-func (e *MsgError) Is(target error) bool {
-	t, ok := target.(*MsgError)
-	if !ok {
+func (s *MsgError) Is(target error) bool {
+	var t *MsgError
+	if errors.As(target, &t) {
 		return false
 	}
-	return e.errType.t == t.errType.t
+	return s.errType.t == t.errType.t
 }
 
 // As allows the error to be cast to a target type.
-func (e *MsgError) As(target interface{}) bool {
+func (s *MsgError) As(target interface{}) bool {
 	if t, ok := target.(**MsgError); ok {
-		*t = e
+		*t = s
 		return true
 	}
-	return errors.As(e.err, target)
+	return errors.As(s.err, &target)
 }
 
-func NewMsgError(op string, err error, msg string) MsgError {
-	return MsgError{
+func NewMsgError(op string, err error, msg string) *MsgError {
+	return &MsgError{
 		op:      op,
 		err:     err,
 		msg:     msg,
@@ -68,8 +68,8 @@ func NewMsgError(op string, err error, msg string) MsgError {
 	}
 }
 
-func NewAuthorizationError(op string, err error, msg string) MsgError {
-	return MsgError{
+func NewAuthorizationError(op string, err error, msg string) *MsgError {
+	return &MsgError{
 		op:      op,
 		err:     err,
 		msg:     msg,
@@ -77,8 +77,8 @@ func NewAuthorizationError(op string, err error, msg string) MsgError {
 	}
 }
 
-func NewIncorrectInputError(op string, err error, msg string) MsgError {
-	return MsgError{
+func NewIncorrectInputError(op string, err error, msg string) *MsgError {
+	return &MsgError{
 		op:      op,
 		err:     err,
 		msg:     msg,
@@ -86,8 +86,8 @@ func NewIncorrectInputError(op string, err error, msg string) MsgError {
 	}
 }
 
-func NewNotFoundError(op string, err error, msg string) MsgError {
-	return MsgError{
+func NewNotFoundError(op string, err error, msg string) *MsgError {
+	return &MsgError{
 		op:      op,
 		err:     err,
 		msg:     msg,
@@ -95,8 +95,8 @@ func NewNotFoundError(op string, err error, msg string) MsgError {
 	}
 }
 
-func NewConflictError(op string, err error, msg string) MsgError {
-	return MsgError{
+func NewConflictError(op string, err error, msg string) *MsgError {
+	return &MsgError{
 		op:      op,
 		err:     err,
 		msg:     msg,

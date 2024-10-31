@@ -2,8 +2,11 @@ package user
 
 import (
 	"errors"
+	"fmt"
 
 	"golang.org/x/text/language"
+
+	"github.com/ARUMANDESU/go-revise/pkg/errs"
 )
 
 var ErrInvalidSettings = errors.New("invalid settings")
@@ -77,15 +80,24 @@ func DefaultReminderTime() ReminderTime {
 // NewReminderTime creates a new reminder time.
 //
 //	hour maps to the 24-hour format, and minute is between 0-59.
-func NewReminderTime(hour, minute uint8) ReminderTime {
+func NewReminderTime(hour, minute uint8) (ReminderTime, error) {
+	const op = "domain.user.reminder_time.new_reminder_time"
 	switch {
 	case hour > 23:
-		hour = 23
+		return ReminderTime{}, errs.NewIncorrectInputError(
+			op,
+			fmt.Errorf("hour must be less than 24(can be 23) and more than 0, got: %d", hour),
+			"invalid hour",
+		)
 	case minute > 59:
-		minute = 59
+		return ReminderTime{}, errs.NewIncorrectInputError(
+			op,
+			fmt.Errorf("minute must be less than 60(can be 59) and more than 0, got: %d", minute),
+			"invalid minute",
+		)
 	}
 	return ReminderTime{
 		Hour:   hour,
 		Minute: minute,
-	}
+	}, nil
 }

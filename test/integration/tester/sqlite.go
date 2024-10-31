@@ -3,6 +3,7 @@ package tester
 import (
 	"database/sql"
 	"embed"
+	"errors"
 	"fmt"
 	"os"
 	"strings"
@@ -19,14 +20,11 @@ func NewSQLiteDB(t *testing.T) *sql.DB {
 	t.Helper()
 
 	tds := teardowns.New()
-	defer t.Cleanup(func() {
-		err := tds.Execute()
-		if err != nil {
-			t.Error(err)
-		}
-	})
 	handleErr := func(err error) {
-		// we don't call teardowns execute because it's already in t.Cleanup
+		terr := tds.Execute()
+		if terr != nil {
+			errors.Join(err, terr)
+		}
 		t.Fatal(err)
 	}
 
@@ -61,5 +59,11 @@ func NewSQLiteDB(t *testing.T) *sql.DB {
 		handleErr(fmt.Errorf("failed to migrate mock data: %w", err))
 		return nil
 	}
+	t.Cleanup(func() {
+		err := tds.Execute()
+		if err != nil {
+			t.Error(err)
+		}
+	})
 	return db
 }
