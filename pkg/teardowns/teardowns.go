@@ -1,6 +1,8 @@
 package teardowns
 
-import "errors"
+import (
+	"errors"
+)
 
 type Func func() error
 
@@ -38,7 +40,7 @@ func (t *Funcs) Execute() error {
 	}
 
 	var err error
-	for i := len(*t) - 1; i > 0; i-- {
+	for i := len(*t) - 1; i >= 0; i-- {
 		fErr := (*t)[i]()
 		if fErr != nil {
 			err = errors.Join(err, fErr)

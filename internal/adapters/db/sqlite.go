@@ -92,14 +92,20 @@ func MigrateSchema(
 func GetFile(fileName string) (string, error) {
 	fileDir := filepath.Join(os.TempDir(), "go-revise")
 	filePath := filepath.Join(fileDir, fileName)
-	os.MkdirAll(fileDir, os.FileMode(0755))
+	err := os.MkdirAll(fileDir, os.FileMode(0755))
+	if err != nil {
+		return "", err
+	}
 
-	if _, err := os.Stat(filePath); os.IsNotExist(err) {
+	if _, err = os.Stat(filePath); os.IsNotExist(err) {
 		file, err := os.Create(filePath)
 		if err != nil {
 			return "", err
 		}
-		file.Close()
+		err = file.Close()
+		if err != nil {
+			return "", err
+		}
 	}
 
 	return filePath, nil
