@@ -415,7 +415,7 @@ func TestTags_IsValid(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			got := tt.t.IsValid()
+			got := tt.t.IsEmpty()
 			t.Run(fmt.Sprintf("Expected %v", tt.expected), subtest.Value(got).CompareEqual(tt.expected))
 		})
 	}

@@ -51,8 +51,7 @@ func (r *SQLiteRepo) CreateUser(ctx context.Context, u user.User) (_ error) {
 		var sqliteErr sqlite3.Error
 		if errors.As(err, &sqliteErr) {
 			switch {
-			case
-				errors.Is(sqliteErr.Code, sqlite3.ErrConstraint),
+			case errors.Is(sqliteErr.Code, sqlite3.ErrConstraint),
 				errors.Is(sqliteErr.Code, sqlite3.ErrConstraintUnique):
 				return errs.NewAlreadyExistsError(op, err, "user already exists")
 			case errors.Is(sqliteErr.Code, sqlite3.ErrConstraintNotNull):
@@ -93,9 +92,11 @@ func (r *SQLiteRepo) withTx(ctx context.Context, op errs.Op, fn func(*sqlc.Queri
 	return nil
 }
 
-// Usage example:
-func (r *SQLiteRepo) UpdateUser(ctx context.Context, userID uuid.UUID,
-	updateFn func(*user.User) (*user.User, error)) error {
+func (r *SQLiteRepo) UpdateUser(
+	ctx context.Context,
+	userID uuid.UUID,
+	updateFn func(*user.User) (*user.User, error),
+) error {
 	op := errs.Op("domain.user.sqlite.update_user")
 
 	return r.withTx(ctx, op, func(q *sqlc.Queries) error {
@@ -106,7 +107,7 @@ func (r *SQLiteRepo) UpdateUser(ctx context.Context, userID uuid.UUID,
 				if errors.Is(sqliteErr.Code, sqlite3.ErrNotFound) {
 					return errs.
 						NewNotFound(op, err, "no users found").
-						WithMessages([]errs.Message{{"message", "no users found"}}).
+						WithMessages([]errs.Message{{Key: "message", Value: "no users found"}}).
 						WithContext("id", userID)
 				}
 			}
@@ -157,7 +158,7 @@ func (r *SQLiteRepo) GetUsersForNotification(ctx context.Context) ([]user.User, 
 			if errors.Is(sqliteErr.Code, sqlite3.ErrNotFound) {
 				return nil, errs.
 					NewNotFound(op, err, "no users found").
-					WithMessages([]errs.Message{{"message", "no users found"}}).
+					WithMessages([]errs.Message{{Key: "message", Value: "no users found"}}).
 					WithContext("reminder_time", reminderTimeModel)
 			}
 		}
@@ -182,7 +183,7 @@ func (r *SQLiteRepo) GetUserByID(ctx context.Context, id uuid.UUID) (query.User,
 			if errors.Is(sqliteErr.Code, sqlite3.ErrNotFound) {
 				return query.User{}, errs.
 					NewNotFound(op, err, "no users found").
-					WithMessages([]errs.Message{{"message", "no users found"}}).
+					WithMessages([]errs.Message{{Key: "message", Value: "no users found"}}).
 					WithContext("id", id)
 			}
 		}
@@ -210,7 +211,7 @@ func (r *SQLiteRepo) GetUserByChatID(
 			if errors.Is(sqliteErr.Code, sqlite3.ErrNotFound) {
 				return query.User{}, errs.
 					NewNotFound(op, err, "no users found").
-					WithMessages([]errs.Message{{"message", "no users found"}}).
+					WithMessages([]errs.Message{{Key: "message", Value: "no users found"}}).
 					WithContext("chat_id", chatID)
 			}
 		}
@@ -238,7 +239,7 @@ func (r *SQLiteRepo) GetUserByTelegramID(
 			if errors.Is(sqliteErr.Code, sqlite3.ErrNotFound) {
 				return nil, errs.
 					NewNotFound(op, err, "no users found").
-					WithMessages([]errs.Message{{"message", "no users found"}}).
+					WithMessages([]errs.Message{{Key: "message", Value: "no users found"}}).
 					WithContext("chat_id", id)
 			}
 		}
@@ -342,17 +343,15 @@ func modelToReminderTime(rt string) (user.ReminderTime, error) {
 
 	rt = strings.TrimSpace(rt)
 	if isValidTimeFormat(rt) {
-		return user.ReminderTime{}, errs.NewIncorrectInputError(
-			op,
-			fmt.Errorf("invalid time format: %s", rt),
-			"invalid reminder time format",
-		).WithContext("value", rt)
+		return user.ReminderTime{}, errs.
+			NewIncorrectInputError(op, nil, "invalid model reminder time").
+			WithContext("value", rt)
 	}
 	var hour, minute uint8
 	parsed, err := fmt.Sscanf(rt, "%d:%d", &hour, &minute)
 	if err != nil {
 		return user.ReminderTime{}, errs.
-			NewUnknownError(op, err, fmt.Sprintf("failed to parse model reminder time, model: %s", rt)).
+			NewUnknownError(op, err, "failed to parse reminder time").
 			WithContext("reminder_time", rt)
 	}
 	if parsed != 2 {

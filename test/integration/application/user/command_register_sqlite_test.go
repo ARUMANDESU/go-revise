@@ -37,7 +37,7 @@ func TestUserApp_RegisterUser(t *testing.T) {
 				ChatID:   user.TelegramID(0),
 				Settings: &defaultUserSettings,
 			},
-			expectedErr:     &errs.MsgError{},
+			expectedErr:     &errs.Error{},
 			expectedErrType: errs.ErrorTypeIncorrectInput,
 		},
 	}
@@ -53,7 +53,7 @@ func TestUserApp_RegisterUser(t *testing.T) {
 			} else {
 				require.Error(t, err)
 				assert.IsType(t, tt.expectedErr, err)
-				assert.Equal(t, tt.expectedErrType, err.(*errs.MsgError).Type)
+				assert.Equal(t, tt.expectedErrType, err.(*errs.Error).Type)
 				return
 			}
 

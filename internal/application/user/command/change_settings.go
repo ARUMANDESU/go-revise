@@ -2,11 +2,11 @@ package command
 
 import (
 	"context"
-	"fmt"
 
 	"github.com/gofrs/uuid"
 
 	domainUser "github.com/ARUMANDESU/go-revise/internal/domain/user"
+	"github.com/ARUMANDESU/go-revise/pkg/errs"
 )
 
 type UserProvider interface {
@@ -34,26 +34,31 @@ func NewChangeSettingsHandler(userRepo domainUser.Repository, userProvider UserP
 }
 
 func (r ChangeSettingsHandler) Handle(ctx context.Context, cmd ChangeSettings) error {
+	op := errs.Op("application.user.command.change_settings")
 	if cmd.ID == uuid.Nil && !cmd.ChatID.IsValid() {
-		return fmt.Errorf("must provide either a valid user_id or chat_id")
+		return errs.
+			NewIncorrectInputError(op, errs.ErrInvalidInput, "id or chat ID must be provided").
+			WithMessages([]errs.Message{{Key: "message", Value: "id or chat ID must be provided"}}).
+			WithContext("chat_id", cmd.ChatID).
+			WithContext("user_id", cmd.ID)
 	}
 
 	if cmd.ID == uuid.Nil && cmd.ChatID.IsValid() {
 		user, err := r.userProvider.GetUserByTelegramID(ctx, cmd.ChatID)
 		if err != nil {
-			return fmt.Errorf("failed to get user by chat_id: %w", err)
+			return errs.WithOp(op, err, "failed to get user by chat ID")
 		}
 		cmd.ID = user.ID()
 	}
 
 	err := r.userRepo.UpdateUser(ctx, cmd.ID, func(user *domainUser.User) (*domainUser.User, error) {
 		if err := user.UpdateSettings(cmd.Settings); err != nil {
-			return nil, fmt.Errorf("failed to update user settings: %w", err)
+			return nil, errs.WithOp(op, err, "failed to update user settings")
 		}
 		return user, nil
 	})
 	if err != nil {
-		return fmt.Errorf("failed to update user in repository: %w", err)
+		return errs.WithOp(op, err, "failed to update user")
 	}
 
 	return nil

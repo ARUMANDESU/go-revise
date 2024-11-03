@@ -2,7 +2,6 @@ package command
 
 import (
 	"context"
-	"errors"
 
 	"github.com/gofrs/uuid"
 
@@ -24,35 +23,36 @@ func NewReviewHandler(repo reviseitem.Repository) *ReviewHandler {
 }
 
 func (h *ReviewHandler) Handle(ctx context.Context, cmd Review) error {
-	const op = "reviseitem.command.review"
+	op := errs.Op("application.reviseitem.command.review")
 	if cmd.ID.IsNil() {
-		return errs.NewIncorrectInputError(
-			op,
-			errors.New("revise item id must be provided"),
-			"revise-item-id-must-be-provided",
-		)
+		return errs.
+			NewIncorrectInputError(op, errs.ErrInvalidInput, "id must be provided").
+			WithMessages([]errs.Message{{Key: "message", Value: "id must be provided"}}).
+			WithContext("cmd", cmd)
 	}
 	if cmd.UserID.IsNil() {
-		return errs.NewIncorrectInputError(
-			op,
-			errors.New("user_id must be provided"),
-			"user_id-must-be-provided",
-		)
+		return errs.
+			NewIncorrectInputError(op, errs.ErrInvalidInput, "user_id must be provided").
+			WithMessages([]errs.Message{{Key: "message", Value: "user_id must be provided"}}).
+			WithContext("cmd", cmd)
 	}
 
-	return h.repo.Update(
+	err := h.repo.Update(
 		ctx,
 		cmd.ID,
 		func(ri *reviseitem.Aggregate) (*reviseitem.Aggregate, error) {
 			if ri.CanModify(cmd.UserID) {
-				return nil, errs.NewAuthorizationError(
-					op,
-					errors.New("not authorized to review"),
-					"not-authorized-to-review",
-				)
+				return nil, errs.
+					NewForbiddenError(op, nil, "user is not allowed to modify the item").
+					WithMessages([]errs.Message{{Key: "message", Value: "user is not allowed to modify the item"}}).
+					WithContext("cmd", cmd)
 			}
 			ri.Review()
 			return ri, nil
 		},
 	)
+	if err != nil {
+		return errs.WithOp(op, err, "failed to update revise item")
+	}
+	return nil
 }

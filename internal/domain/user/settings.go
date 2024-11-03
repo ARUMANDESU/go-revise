@@ -21,7 +21,7 @@ func NewSettings(lang *language.Tag, reminderTime ReminderTime) (Settings, error
 	if lang == nil || *lang == language.Und {
 		return Settings{}, errs.
 			NewIncorrectInputError(op, ErrInvalidSettings, "language is not provided").
-			WithMessages([]errs.Message{{"message", "language is not provided"}}).
+			WithMessages([]errs.Message{{Key: "message", Value: "language is not provided"}}).
 			WithContext("language", lang)
 	}
 	if err := reminderTime.Validate(); err != nil {
@@ -47,19 +47,16 @@ func (s *Settings) Validate() error {
 	if s == nil {
 		return errs.
 			NewIncorrectInputError(op, ErrInvalidSettings, "settings are nil").
-			WithMessages([]errs.Message{{"message", "settings is not provided"}})
+			WithMessages([]errs.Message{{Key: "message", Value: "settings is not provided"}})
 	}
 	if s.Language == language.Und {
 		return errs.
 			NewIncorrectInputError(op, ErrInvalidSettings, "language is not set").
-			WithMessages([]errs.Message{{"message", "language is not set"}}).
+			WithMessages([]errs.Message{{Key: "message", Value: "language is not set"}}).
 			WithContext("language", s.Language)
 	}
 	if err := s.ReminderTime.Validate(); err != nil {
-		return errs.
-			NewIncorrectInputError(op, ErrInvalidSettings, "reminder time is invalid").
-			WithMessages([]errs.Message{{"message", "reminder time is invalid"}}).
-			WithContext("reminder_time", s.ReminderTime)
+		return errs.WithOp(op, err, "reminder time is invalid")
 	}
 	return nil
 }
@@ -84,18 +81,18 @@ func (r *ReminderTime) Validate() error {
 	if r == nil {
 		return errs.
 			NewIncorrectInputError(op, ErrInvalidSettings, "reminder time is nil").
-			WithMessages([]errs.Message{{"message", "reminder time is not provided"}})
+			WithMessages([]errs.Message{{Key: "message", Value: "reminder time is not provided"}})
 	}
 	if r.Hour > 23 {
 		return errs.
 			NewIncorrectInputError(op, ErrInvalidSettings, "hour is invalid").
-			WithMessages([]errs.Message{{"message", "hour is invalid"}}).
+			WithMessages([]errs.Message{{Key: "message", Value: "hour is invalid"}}).
 			WithContext("hour", r.Hour)
 	}
 	if r.Minute > 59 {
 		return errs.
 			NewIncorrectInputError(op, ErrInvalidSettings, "minute is invalid").
-			WithMessages([]errs.Message{{"message", "minute is invalid"}}).
+			WithMessages([]errs.Message{{Key: "message", Value: "minute is invalid"}}).
 			WithContext("minute", r.Minute)
 	}
 	return nil
@@ -118,12 +115,12 @@ func NewReminderTime(hour, minute uint8) (ReminderTime, error) {
 	case hour > 23:
 		return ReminderTime{}, errs.
 			NewIncorrectInputError(op, errs.ErrInvalidInput, "invalid hour").
-			WithMessages([]errs.Message{{"message", "hour must be less than 24 and more than 0"}}).
+			WithMessages([]errs.Message{{Key: "message", Value: "hour must be less than 24 and more than 0"}}).
 			WithContext("hour", hour)
 	case minute > 59:
 		return ReminderTime{}, errs.
 			NewIncorrectInputError(op, errs.ErrInvalidInput, "invalid minute").
-			WithMessages([]errs.Message{{"message", "minute must be less than 60 and more than 0"}}).
+			WithMessages([]errs.Message{{Key: "message", Value: "minute must be less than 60 and more than 0"}}).
 			WithContext("minute", minute)
 	}
 	return ReminderTime{

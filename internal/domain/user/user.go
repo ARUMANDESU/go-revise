@@ -76,13 +76,13 @@ func NewUser(uid uuid.UUID, chatID TelegramID, options ...OptionFunc) (*User, er
 	case uid == uuid.Nil:
 		return nil, errs.
 			NewIncorrectInputError(op, ErrInvalidUserID, "invalid userID").
-			WithMessages([]errs.Message{{"message", "userID cannot be empty"}}).
+			WithMessages([]errs.Message{{Key: "message", Value: "userID cannot be empty"}}).
 			WithContext("userID", uid)
 	}
 	if !chatID.IsValid() {
 		return nil, errs.
 			NewIncorrectInputError(op, ErrInvalidChatID, "invalid chatID").
-			WithMessages([]errs.Message{{"message", "chatID cannot be empty"}}).
+			WithMessages([]errs.Message{{Key: "message", Value: "chatID cannot be empty"}}).
 			WithContext("chatID", chatID)
 	}
 
