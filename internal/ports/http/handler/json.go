@@ -19,6 +19,7 @@ const maxRequestBodySize = 10 << 20 // 10MB
 
 func readJSON(w http.ResponseWriter, r *http.Request, v any) error {
 	op := errs.Op("handler.readJSON")
+
 	r.Body = http.MaxBytesReader(w, r.Body, maxRequestBodySize)
 
 	dec := json.NewDecoder(r.Body)
@@ -51,8 +52,11 @@ func readJSON(w http.ResponseWriter, r *http.Request, v any) error {
 				return errs.
 					NewIncorrectInputError(op, err, "body contains invalid JSON").
 					WithMessages([]errs.Message{{
-						Key:   "message",
-						Value: fmt.Sprintf("body contains invalid JSON (at character %d)", unmarshalTypeError.Offset),
+						Key: "message",
+						Value: fmt.Sprintf(
+							"body contains invalid JSON (at character %d)",
+							unmarshalTypeError.Offset,
+						),
 					}}).
 					WithContext("body", r.Body).
 					WithContext("offset", unmarshalTypeError.Offset).
@@ -61,8 +65,11 @@ func readJSON(w http.ResponseWriter, r *http.Request, v any) error {
 			return errs.
 				NewIncorrectInputError(op, err, "body contains invalid JSON").
 				WithMessages([]errs.Message{{
-					Key:   "message",
-					Value: fmt.Sprintf("body contains invalid JSON (at character %d)", unmarshalTypeError.Offset),
+					Key: "message",
+					Value: fmt.Sprintf(
+						"body contains invalid JSON (at character %d)",
+						unmarshalTypeError.Offset,
+					),
 				}}).
 				WithContext("body", r.Body).
 				WithContext("offset", unmarshalTypeError.Offset)
@@ -98,6 +105,7 @@ func readJSON(w http.ResponseWriter, r *http.Request, v any) error {
 
 	}
 
+	// This is to ensure that the body contains only a single JSON value.
 	err = dec.Decode(&struct{}{})
 	if err != io.EOF {
 		return errs.

@@ -24,6 +24,16 @@ type ReviewInterval struct {
 	value [maxReviewIntervals]time.Duration
 }
 
+func (r ReviewInterval) Next(i int) time.Time {
+	var add time.Duration
+	if i < 0 || i >= maxReviewIntervals {
+		return time.Time{}
+	}
+	add = r.value[i]
+
+	return time.Now().Add(add)
+}
+
 // Default review intervals.
 var defaultIntervals = [maxReviewIntervals]time.Duration{
 	time.Hour * 24,           // 1 day

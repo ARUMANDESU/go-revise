@@ -61,7 +61,6 @@ func TestNewReviseItem(t *testing.T) {
 					assertReviseItem(t, got, tt.want)
 				})
 			}
-
 		})
 	}
 }
@@ -409,23 +408,21 @@ func validReviseItem(t *testing.T) *ReviseItem {
 func validNewReviseItemArgs(t *testing.T, reviseID, userID uuid.UUID) NewReviseItemArgs {
 	t.Helper()
 	return NewReviseItemArgs{
-		ID:             reviseID,
-		UserID:         userID,
-		Name:           validName(t, language.Kazakh),
-		Description:    validDescription(t, language.Kazakh),
-		Tags:           validTags(t),
-		NextRevisionAt: validNextRevisionAt(t),
+		ID:          reviseID,
+		UserID:      userID,
+		Name:        validName(t, language.Kazakh),
+		Description: validDescription(t, language.Kazakh),
+		Tags:        validTags(t),
 	}
 }
 
 func invalidNewReviseItemArgs(t *testing.T, reviseID, userID uuid.UUID) NewReviseItemArgs {
 	t.Helper()
 	return NewReviseItemArgs{
-		ID:             reviseID,
-		UserID:         userID,
-		Name:           longName(t),
-		Description:    longDescription(t),
-		Tags:           valueobject.ExampleInValidTags(),
-		NextRevisionAt: time.Time{},
+		ID:          reviseID,
+		UserID:      userID,
+		Name:        longName(t),
+		Description: longDescription(t),
+		Tags:        valueobject.ExampleInValidTags(),
 	}
 }

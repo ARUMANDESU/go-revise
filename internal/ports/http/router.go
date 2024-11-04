@@ -23,7 +23,16 @@ func (p *Port) setUpRouter() {
 	})
 
 	r.Route("/api/v1", func(v1 chi.Router) {
-		v1.Post("/register-user", p.handler.RegisterUser)
-	})
+		v1.Route("/users", func(r chi.Router) {
+			r.Post("/register", p.handler.RegisterUser)
 
+			r.Get("/", p.handler.GetUser)
+		})
+
+		v1.Route("/revise-items", func(r chi.Router) {
+			r.Post("/", p.handler.NewReviseItem)
+
+			r.Get("/", p.handler.GetReviseItem)
+		})
+	})
 }

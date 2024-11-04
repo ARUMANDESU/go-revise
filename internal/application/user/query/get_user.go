@@ -17,8 +17,8 @@ type GetUserReadModel interface {
 // GetUser represents a command to get a user.
 // It can be used to get a user by ID or by chatID.
 type GetUser struct {
-	ID     uuid.UUID       `json:"user_id"`
-	ChatID user.TelegramID `json:"chat_id"`
+	ID     uuid.UUID       `json:"user_id,omitempty"`
+	ChatID user.TelegramID `json:"chat_id,omitempty"`
 }
 
 type GetUserHandler struct {
