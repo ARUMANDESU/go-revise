@@ -7,6 +7,7 @@ import (
 
 	"github.com/ARUMANDESU/go-revise/internal/domain/reviseitem"
 	"github.com/ARUMANDESU/go-revise/internal/domain/valueobject"
+	"github.com/ARUMANDESU/go-revise/pkg/errs"
 )
 
 type NewReviseItem struct {
@@ -31,18 +32,19 @@ type NewReviseItemHandler struct {
 	repo reviseitem.Repository
 }
 
-func NewNewReviseItemHandler(repo reviseitem.Repository) *NewReviseItemHandler {
-	return &NewReviseItemHandler{repo: repo}
+func NewNewReviseItemHandler(repo reviseitem.Repository) NewReviseItemHandler {
+	return NewReviseItemHandler{repo: repo}
 }
 
 func (h *NewReviseItemHandler) Handle(ctx context.Context, cmd NewReviseItem) error {
+	op := errs.Op("application.reviseitem.command.new_reviseitem")
 	item, err := reviseitem.NewReviseItem(cmd.toArgs())
 	if err != nil {
-		return err
+		return errs.WithOp(op, err, "failed to create new revise item")
 	}
 
 	if err := h.repo.Save(ctx, *reviseitem.NewAggregate(item)); err != nil {
-		return err
+		return errs.WithOp(op, err, "failed to save new revise item")
 	}
 
 	return nil

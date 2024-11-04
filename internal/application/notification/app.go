@@ -8,6 +8,7 @@ import (
 
 	"github.com/ARUMANDESU/go-revise/internal/domain/reviseitem"
 	domainUser "github.com/ARUMANDESU/go-revise/internal/domain/user"
+	"github.com/ARUMANDESU/go-revise/pkg/errs"
 	"github.com/ARUMANDESU/go-revise/pkg/retry"
 )
 
@@ -40,26 +41,27 @@ func NewApplication(userProvider UserProvider, reviseItemProvider ReviseItemProv
 }
 
 func (a Application) NotifyUsers(ctx context.Context) error {
+	op := errs.Op("application.notification.notify_users")
 	users, err := a.UserProvider.GetUsersForNotification(ctx)
 	if err != nil {
-		return fmt.Errorf("failed to get users for notification: %w", err)
+		return errs.WithOp(op, err, "failed to get users for notification")
 	}
 
 	for _, user := range users {
 		err = retry.Do(func() error {
 			reviseItems, err := a.ReviseItemProvider.FetchReviseItemsDueForUser(ctx, user.ID())
 			if err != nil {
-				return fmt.Errorf("failed to fetch revise items for user %s: %w", user.ID(), err)
+				return errs.WithOp(op, err, "failed to fetch revise items for user")
 			}
 
 			err = a.Notifier.Notify(ctx, user, reviseItems)
 			if err != nil {
-				return fmt.Errorf("failed to notify user %s: %w", user.ID(), err)
+				return errs.WithOp(op, err, fmt.Sprintf("failed to notify user %s", user.ID()))
 			}
 			return nil
 		}, retry.WithMaxRetries(6))
 		if err != nil {
-			return err
+			return errs.WithOp(op, err, "failed to notify user")
 		}
 	}
 

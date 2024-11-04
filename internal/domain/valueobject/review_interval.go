@@ -1,7 +1,6 @@
 package valueobject
 
 import (
-	"fmt"
 	"strconv"
 	"strings"
 	"time"
@@ -52,22 +51,21 @@ func DefaultReviewIntervals() ReviewInterval {
 
 // ParseReviewInterval parses the review interval from a string separated by spaces.
 func ParseReviewInterval(interval string) (ReviewInterval, error) {
-	const op = "valueobject.parse_review_interval"
+	op := errs.Op("valueobject.parse_review_interval")
 	intervals := [maxReviewIntervals]time.Duration{}
 	split := splitInterval(interval)
 
 	if len(split) > maxReviewIntervals {
-		return ReviewInterval{}, errs.NewIncorrectInputError(
-			op,
-			fmt.Errorf("too many values provided, max is %d", maxReviewIntervals),
-			"too-many-values",
-		)
+		return ReviewInterval{}, errs.
+			NewIncorrectInputError(op, errs.ErrInvalidInput, "too many intervals").
+			WithMessages([]errs.Message{{Key: "message", Value: "too many intervals"}}).
+			WithContext("intervals", interval)
 	}
 
 	for i, v := range split {
 		duration, err := parseDuration(v)
 		if err != nil {
-			return ReviewInterval{}, err
+			return ReviewInterval{}, errs.WithOp(op, err, "failed to parse duration")
 		}
 		intervals[i] = duration
 	}
@@ -87,17 +85,16 @@ func splitInterval(interval string) []string {
 
 // parseDuration parses the duration from a string with a number followed by a time unit.
 func parseDuration(interval string) (time.Duration, error) {
-	const op = "valueobject.parse_duration"
+	op := errs.Op("valueobject.parse_duration")
 	value := interval[:len(interval)-1]
 	unit := interval[len(interval)-1:]
 
 	floatValue, err := strconv.ParseFloat(value, 64)
 	if err != nil {
-		return 0, errs.NewIncorrectInputError(
-			op,
-			fmt.Errorf("invalid value type: %s", value),
-			"invalid-value-type",
-		)
+		return 0, errs.
+			NewIncorrectInputError(op, err, "invalid value").
+			WithMessages([]errs.Message{{Key: "message", Value: "invalid value"}}).
+			WithContext("value", value)
 	}
 
 	var duration time.Duration
@@ -115,11 +112,10 @@ func parseDuration(interval string) (time.Duration, error) {
 	case yearCharacter:
 		duration = time.Duration(floatValue * float64(time.Hour) * 24 * 365)
 	default:
-		return 0, errs.NewIncorrectInputError(
-			op,
-			fmt.Errorf("invalid time unit: %s", unit),
-			"invalid-time-unit",
-		)
+		return 0, errs.
+			NewIncorrectInputError(op, errs.ErrInvalidInput, "invalid unit").
+			WithMessages([]errs.Message{{Key: "message", Value: "invalid unit"}}).
+			WithContext("unit", unit)
 	}
 
 	return duration, nil

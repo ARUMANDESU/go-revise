@@ -5,6 +5,8 @@ import (
 	"time"
 
 	"github.com/gofrs/uuid"
+
+	"github.com/ARUMANDESU/go-revise/pkg/errs"
 )
 
 var (
@@ -57,8 +59,9 @@ func (u *User) UpdatedAt() time.Time {
 }
 
 func (u *User) UpdateSettings(settings Settings) error {
-	if !settings.IsValid() {
-		return ErrInvalidSettings
+	op := errs.Op("domain.user.update_settings")
+	if err := settings.Validate(); err != nil {
+		return errs.WithOp(op, err, "invalid settings provided")
 	}
 
 	u.settings = settings
@@ -68,12 +71,19 @@ func (u *User) UpdateSettings(settings Settings) error {
 }
 
 func NewUser(uid uuid.UUID, chatID TelegramID, options ...OptionFunc) (*User, error) {
+	op := errs.Op("domain.user.new_user")
 	switch {
 	case uid == uuid.Nil:
-		return nil, ErrInvalidUserID
+		return nil, errs.
+			NewIncorrectInputError(op, ErrInvalidUserID, "invalid userID").
+			WithMessages([]errs.Message{{Key: "message", Value: "userID cannot be empty"}}).
+			WithContext("userID", uid)
 	}
 	if !chatID.IsValid() {
-		return nil, ErrInvalidChatID
+		return nil, errs.
+			NewIncorrectInputError(op, ErrInvalidChatID, "invalid chatID").
+			WithMessages([]errs.Message{{Key: "message", Value: "chatID cannot be empty"}}).
+			WithContext("chatID", chatID)
 	}
 
 	u := User{
@@ -105,9 +115,10 @@ func MustNewUser(uid uuid.UUID, chatID TelegramID, options ...OptionFunc) *User 
 }
 
 func WithSettings(settings Settings) OptionFunc {
+	op := errs.Op("domain.user.with_settings")
 	return func(u *User) error {
-		if !settings.IsValid() {
-			return ErrInvalidSettings
+		if err := settings.Validate(); err != nil {
+			return errs.WithOp(op, err, "invalid settings provided")
 		}
 		u.settings = settings
 		return nil

@@ -1,7 +1,6 @@
 package reviseitem
 
 import (
-	"errors"
 	"strings"
 	"time"
 
@@ -46,25 +45,31 @@ type NewReviseItemArgs struct {
 
 // NewReviseItem creates a new revise item. It returns an error if the arguments are invalid.
 func NewReviseItem(args NewReviseItemArgs) (*ReviseItem, error) {
+	op := errs.Op("domain.reviseitem.new_revise_item")
 	if args.ID == uuid.Nil {
-		return nil, ErrInvalidID
+		return nil, errs.
+			NewUnknownError(op, errs.ErrInvalidInput, "revise item id is nil").
+			WithContext("args.id", args.ID)
 	}
 	if args.UserID == uuid.Nil {
-		return nil, ErrInvalidUserID
+		return nil, errs.
+			NewIncorrectInputError(op, errs.ErrInvalidInput, "user id must be provided").
+			WithMessages([]errs.Message{{Key: "message", Value: "user id must be provided"}}).
+			WithContext("args.UserID", args.UserID)
 	}
 	args.Name = strings.TrimSpace(args.Name)
 	if err := validateName(args.Name); err != nil {
-		return nil, err
+		return nil, errs.WithOp(op, err, "validating revise item name failed")
 	}
 	args.Description = strings.TrimSpace(args.Description)
 	if err := validateDescription(args.Description); err != nil {
-		return nil, err
+		return nil, errs.WithOp(op, err, "validating revise item description failed")
 	}
 	if err := valueobject.ValidateTags(args.Tags); err != nil {
-		return nil, err
+		return nil, errs.WithOp(op, err, "validating revise item tags failed")
 	}
 	if err := validateNextRevisionAt(args.NextRevisionAt); err != nil {
-		return nil, err
+		return nil, errs.WithOp(op, err, "validating, revise item next revision at failed")
 	}
 
 	now := time.Now()
@@ -121,8 +126,9 @@ func (r *ReviseItem) LastRevisedAt() time.Time {
 }
 
 func (r *ReviseItem) UpdateName(name string) error {
+	op := errs.Op("domain.reviseitem.update_name")
 	if err := validateName(name); err != nil {
-		return err
+		return errs.WithOp(op, err, "name validation failed")
 	}
 
 	r.name = name
@@ -132,8 +138,9 @@ func (r *ReviseItem) UpdateName(name string) error {
 }
 
 func (r *ReviseItem) UpdateDescription(description string) error {
+	op := errs.Op("domain.reviseitem.update_description")
 	if err := validateDescription(description); err != nil {
-		return err
+		return errs.WithOp(op, err, "description validation failed")
 	}
 
 	r.description = description
@@ -143,12 +150,9 @@ func (r *ReviseItem) UpdateDescription(description string) error {
 }
 
 func (r *ReviseItem) AddTags(tags valueobject.Tags) error {
-	const op = "domain.reviseitem.add_tags"
-	if !tags.IsValid() {
-		return errs.NewIncorrectInputError(op, errors.New("invalid tags"), "invalid-tags")
-	}
+	op := errs.Op("domain.reviseitem.add_tags")
 	if err := valueobject.ValidateTags(tags); err != nil {
-		return err
+		return errs.WithOp(op, err, "tags validation failed")
 	}
 
 	r.tags.AddTags(tags)
@@ -158,9 +162,11 @@ func (r *ReviseItem) AddTags(tags valueobject.Tags) error {
 }
 
 func (r *ReviseItem) RemoveTags(tags valueobject.Tags) error {
-	const op = "domain.reviseitem.remove_tags"
-	if !tags.IsValid() {
-		return errs.NewIncorrectInputError(op, errors.New("invalid tags"), "invalid-tags")
+	op := errs.Op("domain.reviseitem.remove_tags")
+	if !tags.IsEmpty() {
+		return errs.
+			NewIncorrectInputError(op, errs.ErrInvalidInput, "tags are empty").
+			WithMessages([]errs.Message{{Key: "message", Value: "tags must be provided, got empty"}})
 	}
 
 	r.tags.RemoveTags(tags)
@@ -170,8 +176,9 @@ func (r *ReviseItem) RemoveTags(tags valueobject.Tags) error {
 }
 
 func (r *ReviseItem) UpdateNextRevisionAt(nextRevisionAt time.Time) error {
+	op := errs.Op("domain.reviseitem.update_next_revision_at")
 	if err := validateNextRevisionAt(nextRevisionAt); err != nil {
-		return err
+		return errs.WithOp(op, err, "next revision at validation failed")
 	}
 
 	r.nextRevisionAt = nextRevisionAt

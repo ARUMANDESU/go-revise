@@ -4,6 +4,7 @@ import (
 	"database/sql"
 	"embed"
 	"errors"
+	"log/slog"
 	"os"
 	"path/filepath"
 
@@ -18,11 +19,11 @@ import (
 var MigrationsFS embed.FS
 
 func NewSqlite(filePath string) (*sql.DB, error) {
-	const op = "db.sqlite.new_slite"
+	op := errs.Op("adapters.db.sqlite.new_sqlite")
 
 	db, err := sql.Open("sqlite3", filePath)
 	if err != nil {
-		return nil, errs.NewMsgError(op, err, "failed to connect to sqlite database")
+		return nil, errs.NewUnknownError(op, err, "failed to connect to sqlite database")
 	}
 
 	return db, nil
@@ -40,26 +41,26 @@ func MigrateSchema(
 	migrationTable string,
 	nSteps *int,
 ) error {
-	const op = "adapters.db.sqlite"
+	op := errs.Op("adapters.db.sqlite.migrate_schema")
 
 	if migrationTable == "" {
 		migrationTable = "migrations"
 	}
 	db, err := sql.Open("sqlite3", filePath)
 	if err != nil {
-		return errs.NewMsgError(op, err, "failed to open sqlite connection")
+		return errs.NewUnknownError(op, err, "failed to open sqlite connection")
 	}
 
 	migrateDriver, err := sqlite.WithInstance(db, &sqlite.Config{
 		MigrationsTable: migrationTable,
 	})
 	if err != nil {
-		return errs.NewMsgError(op, err, "failed to create migration driver")
+		return errs.NewUnknownError(op, err, "failed to create migration driver")
 	}
 
 	srcDriver, err := iofs.New(migrationsFs, "migrations")
 	if err != nil {
-		return errs.NewMsgError(op, err, "failed to create migration source")
+		return errs.NewUnknownError(op, err, "failed to create migration source")
 	}
 
 	preparedMigrations, err := migrate.NewWithInstance(
@@ -69,11 +70,14 @@ func MigrateSchema(
 		migrateDriver,
 	)
 	if err != nil {
-		return errs.NewMsgError(op, err, "failed to create prepared migrations")
+		return errs.NewUnknownError(op, err, "failed to create prepared migrations")
 	}
 
 	defer func() {
-		preparedMigrations.Close()
+		err, err2 := preparedMigrations.Close()
+		if err != nil || err2 != nil {
+			slog.Error("failed to close prepared migrations", slog.String("source", err.Error()), slog.String("database", err2.Error()))
+		}
 	}()
 	if nSteps != nil {
 		err = preparedMigrations.Steps(*nSteps)
@@ -82,7 +86,7 @@ func MigrateSchema(
 	}
 
 	if err != nil && !errors.Is(err, migrate.ErrNoChange) {
-		return errs.NewMsgError(op, err, "failed to apply migrations")
+		return errs.NewUnknownError(op, err, "failed to apply migrations")
 	}
 
 	return nil

@@ -4,6 +4,7 @@ import (
 	"context"
 
 	domainUser "github.com/ARUMANDESU/go-revise/internal/domain/user"
+	"github.com/ARUMANDESU/go-revise/pkg/errs"
 )
 
 type RegisterUser struct {
@@ -20,6 +21,7 @@ func NewRegisterUserHandler(userRepo domainUser.Repository) RegisterUserHandler 
 }
 
 func (r RegisterUserHandler) Handle(ctx context.Context, cmd RegisterUser) error {
+	const op = "application.user.register_user"
 	var opts []domainUser.OptionFunc
 	if cmd.Settings != nil {
 		opts = append(opts, domainUser.WithSettings(*cmd.Settings))
@@ -27,8 +29,12 @@ func (r RegisterUserHandler) Handle(ctx context.Context, cmd RegisterUser) error
 
 	user, err := domainUser.NewUser(domainUser.NewUserID(), cmd.ChatID, opts...)
 	if err != nil {
-		return err
+		return errs.WithOp(op, err, "failed to create user")
 	}
 
-	return r.userRepo.CreateUser(ctx, *user)
+	err = r.userRepo.CreateUser(ctx, *user)
+	if err != nil {
+		return errs.WithOp(op, err, "failed to create user")
+	}
+	return nil
 }

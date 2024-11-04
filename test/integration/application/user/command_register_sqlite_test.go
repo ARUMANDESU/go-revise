@@ -12,23 +12,33 @@ import (
 	userquery "github.com/ARUMANDESU/go-revise/internal/application/user/query"
 	"github.com/ARUMANDESU/go-revise/internal/domain/user"
 	"github.com/ARUMANDESU/go-revise/internal/domain/user/repository"
+	"github.com/ARUMANDESU/go-revise/pkg/errs"
 	"github.com/ARUMANDESU/go-revise/test/integration/tester"
 )
 
 func TestUserApp_RegisterUser(t *testing.T) {
+	defaultUserSettings := user.DefaultSettings()
 	tests := []struct {
-		name string
-		cmd  usercommand.RegisterUser
+		name            string
+		cmd             usercommand.RegisterUser
+		expectedErr     error
+		expectedErrType errs.ErrorType
 	}{
 		{
 			name: "With valid command",
 			cmd: usercommand.RegisterUser{
-				ChatID: user.TelegramID(123),
-				Settings: &user.Settings{
-					Language:     user.DefaultLanguage(),
-					ReminderTime: user.DefaultReminderTime(),
-				},
+				ChatID:   user.TelegramID(123),
+				Settings: &defaultUserSettings,
 			},
+		},
+		{
+			name: "With invalid ChatID",
+			cmd: usercommand.RegisterUser{
+				ChatID:   user.TelegramID(0),
+				Settings: &defaultUserSettings,
+			},
+			expectedErr:     &errs.Error{},
+			expectedErrType: errs.ErrorTypeIncorrectInput,
 		},
 	}
 
@@ -38,7 +48,14 @@ func TestUserApp_RegisterUser(t *testing.T) {
 			userApp := NewUserApplication(t)
 
 			err := userApp.Commands.RegisterUser.Handle(ctx, tt.cmd)
-			require.NoError(t, err, "failed to register user")
+			if tt.expectedErr == nil {
+				require.NoError(t, err, "failed to register user")
+			} else {
+				require.Error(t, err)
+				assert.IsType(t, tt.expectedErr, err)
+				assert.Equal(t, tt.expectedErrType, err.(*errs.Error).Type)
+				return
+			}
 
 			queryUser, err := userApp.Queries.GetUser.Handle(
 				ctx,

@@ -6,6 +6,7 @@ import (
 	"github.com/gofrs/uuid"
 
 	"github.com/ARUMANDESU/go-revise/internal/domain/user"
+	"github.com/ARUMANDESU/go-revise/pkg/errs"
 )
 
 type GetUserReadModel interface {
@@ -29,14 +30,27 @@ func NewGetUserHandler(readModel GetUserReadModel) GetUserHandler {
 }
 
 func (h GetUserHandler) Handle(ctx context.Context, cmd GetUser) (User, error) {
+	op := errs.Op("application.user.query.get_user")
 	if cmd.ID != uuid.Nil && !cmd.ChatID.IsValid() {
-		return User{}, user.ErrInvalidChatID
+		return User{}, errs.
+			NewIncorrectInputError(op, errs.ErrInvalidInput, "id or chat ID must be provided").
+			WithMessages([]errs.Message{{Key: "message", Value: "id or chat ID must be provided"}}).
+			WithContext("chat_id", cmd.ChatID).
+			WithContext("user_id", cmd.ID)
 	}
 
 	if cmd.ID != uuid.Nil {
-		return h.readModel.GetUserByID(ctx, cmd.ID)
+		queryUser, err := h.readModel.GetUserByID(ctx, cmd.ID)
+		if err != nil {
+			return User{}, errs.WithOp(op, err, "failed to get user by ID")
+		}
+		return queryUser, nil
 	} else if cmd.ChatID.IsValid() {
-		return h.readModel.GetUserByChatID(ctx, cmd.ChatID)
+		queryUser, err := h.readModel.GetUserByChatID(ctx, cmd.ChatID)
+		if err != nil {
+			return User{}, errs.WithOp(op, err, "failed to get user by chat ID")
+		}
+		return queryUser, nil
 	}
 
 	return User{}, user.ErrInvalidIdentifier

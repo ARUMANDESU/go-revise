@@ -5,7 +5,7 @@ import (
 	"database/sql"
 	"errors"
 	"fmt"
-	"log"
+	"log/slog"
 	"strings"
 	"time"
 
@@ -16,6 +16,7 @@ import (
 	"github.com/ARUMANDESU/go-revise/internal/application/user/query"
 	"github.com/ARUMANDESU/go-revise/internal/domain/user"
 	"github.com/ARUMANDESU/go-revise/pkg/errs"
+	"github.com/ARUMANDESU/go-revise/pkg/logutil"
 	"github.com/ARUMANDESU/go-revise/pkg/pointers"
 )
 
@@ -29,7 +30,7 @@ func NewSQLiteRepo(db *sql.DB) SQLiteRepo {
 
 // CreateUser creates a new user.
 func (r *SQLiteRepo) CreateUser(ctx context.Context, u user.User) (_ error) {
-	const op = "domain.user.sqlite.create_user"
+	op := errs.Op("domain.user.sqlite.create_user")
 
 	reminderTime := fmt.Sprintf(
 		"%d:%d",
@@ -50,75 +51,103 @@ func (r *SQLiteRepo) CreateUser(ctx context.Context, u user.User) (_ error) {
 		var sqliteErr sqlite3.Error
 		if errors.As(err, &sqliteErr) {
 			switch {
-			case
-				errors.Is(sqliteErr.Code, sqlite3.ErrConstraint),
+			case errors.Is(sqliteErr.Code, sqlite3.ErrConstraint),
 				errors.Is(sqliteErr.Code, sqlite3.ErrConstraintUnique):
-				return errs.NewConflictError(op, err, "user already exists")
-			case errors.Is(sqliteErr.Code, sqlite3.ErrConstraintNotNull):
-				return errs.NewIncorrectInputError(op, err, "missing required fields")
+				return errs.
+					NewAlreadyExistsError(op, err, "user already exists").
+					WithMessages([]errs.Message{{Key: "message", Value: "user already exists"}}).
+					WithContext("id", u.ID())
 			}
 		}
-		return errs.NewMsgError(op, err, "failed to create new user")
+		return errs.
+			NewUnknownError(op, err, "failed to create new user").
+			WithContext("user", u)
 	}
 
 	return nil
 }
 
-// UpdateUser updates user data.
-// The updateFn function is called with the user data to be updated.
-func (r *SQLiteRepo) UpdateUser(
-	ctx context.Context,
-	userID uuid.UUID,
-	updateFn func(*user.User) (*user.User, error),
-) (_ error) {
-	const op = "domain.user.sqlite.update_user"
-
+func (r *SQLiteRepo) withTx(ctx context.Context, op errs.Op, fn func(*sqlc.Queries) error) error {
 	tx, err := r.db.BeginTx(ctx, nil)
 	if err != nil {
-		return errs.NewMsgError(op, err, "failed to begin transaction")
+		return errs.NewUnknownError(op, err, "failed to begin transaction")
 	}
+
 	defer func() {
 		if err != nil {
-			rollbackErr := tx.Rollback()
-			if rollbackErr != nil {
-				log.Printf("failed to rollback transaction: %v", rollbackErr)
+			if rollbackErr := tx.Rollback(); rollbackErr != nil {
+				slog.Error("failed to rollback transaction",
+					logutil.Err(rollbackErr),
+					"original_error", err)
 			}
 		}
 	}()
 
 	qtx := sqlc.New(tx)
-	userModel, err := qtx.GetUserByID(ctx, userID.String())
-	if err != nil {
-		return errs.NewMsgError(op, err, "failed to get user by id")
+	if err = fn(qtx); err != nil {
+		return err // Already wrapped with operation
 	}
 
-	domainUser, err := modelToUser(userModel)
-	if err != nil {
-		return errs.NewMsgError(op, err, "failed to convert user model to domain")
+	if err = tx.Commit(); err != nil {
+		return errs.NewUnknownError(op, err, "failed to commit transaction")
 	}
 
-	domainUser, err = updateFn(domainUser)
-	if err != nil {
-		return err
-	}
+	return nil
+}
 
-	userModel = userToModel(domainUser)
-	err = qtx.UpdateUser(ctx, sqlc.UpdateUserParams{
-		UpdatedAt:    userModel.UpdatedAt,
-		Language:     userModel.Language,
-		ReminderTime: userModel.ReminderTime,
-		ID:           userModel.ID,
+func (r *SQLiteRepo) UpdateUser(
+	ctx context.Context,
+	userID uuid.UUID,
+	updateFn func(*user.User) (*user.User, error),
+) error {
+	op := errs.Op("domain.user.sqlite.update_user")
+
+	return r.withTx(ctx, op, func(q *sqlc.Queries) error {
+		userModel, err := q.GetUserByID(ctx, userID.String())
+		if err != nil {
+			var sqliteErr sqlite3.Error
+			if errors.As(err, &sqliteErr) {
+				if errors.Is(sqliteErr.Code, sqlite3.ErrNotFound) {
+					return errs.
+						NewNotFound(op, err, "no users found").
+						WithMessages([]errs.Message{{Key: "message", Value: "no users found"}}).
+						WithContext("id", userID)
+				}
+			}
+			return errs.NewUnknownError(op, err, "failed to get user by id")
+		}
+
+		domainUser, err := modelToUser(userModel)
+		if err != nil {
+			return errs.WithOp(op, err, "failed to convert model to user")
+		}
+
+		domainUser, err = updateFn(domainUser)
+		if err != nil {
+			return errs.WithOp(op, err, "failed to update user")
+		}
+
+		userModel = userToModel(domainUser)
+		err = q.UpdateUser(ctx, sqlc.UpdateUserParams{
+			UpdatedAt:    userModel.UpdatedAt,
+			Language:     userModel.Language,
+			ReminderTime: userModel.ReminderTime,
+			ID:           userModel.ID,
+		})
+		if err != nil {
+			var sqliteErr sqlite3.Error
+			if errors.As(err, &sqliteErr) {
+				// TODO: optimistic concurrency control (OCC) handling
+			}
+			return errs.NewUnknownError(op, err, "failed to update user")
+		}
+
+		return nil
 	})
-	if err != nil {
-		return errs.NewMsgError(op, err, "failed to update user")
-	}
-
-	return tx.Commit()
 }
 
 func (r *SQLiteRepo) GetUsersForNotification(ctx context.Context) ([]user.User, error) {
-	const op = "domain.user.sqlite.get_users_for_notification"
-
+	op := errs.Op("domain.user.sqlite.get_users_for_notification")
 	q := sqlc.New(r.db)
 
 	reminderTimeModel := reminderTimeToModel(user.ReminderTime{
@@ -127,39 +156,74 @@ func (r *SQLiteRepo) GetUsersForNotification(ctx context.Context) ([]user.User, 
 	})
 	userModels, err := q.GetUsersByReminderTime(ctx, reminderTimeModel)
 	if err != nil {
-		return nil, errs.NewMsgError(op, err, "failed to get users by reminder time")
+		var sqliteErr sqlite3.Error
+		if errors.As(err, &sqliteErr) {
+			if errors.Is(sqliteErr.Code, sqlite3.ErrNotFound) {
+				return nil, errs.
+					NewNotFound(op, err, "no users found").
+					WithMessages([]errs.Message{{Key: "message", Value: "no users found"}}).
+					WithContext("reminder_time", reminderTimeModel)
+			}
+		}
+		return nil, errs.NewUnknownError(op, err, "failed to get users by reminder time")
 	}
 
-	return modelsToUsers(userModels)
+	users, err := modelsToUsers(userModels)
+	if err != nil {
+		return nil, errs.WithOp(op, err, "failed to convert models to users")
+	}
+	return users, nil
 }
 
 func (r *SQLiteRepo) GetUserByID(ctx context.Context, id uuid.UUID) (query.User, error) {
-	const op = "domain.user.sqlite.get_user_by_id"
+	op := errs.Op("domain.user.sqlite.get_user_by_id")
 	q := sqlc.New(r.db)
 
 	userModel, err := q.GetUserByID(ctx, id.String())
 	if err != nil {
-		return query.User{}, errs.NewMsgError(op, err, "failed to get user by id")
+		var sqliteErr sqlite3.Error
+		if errors.As(err, &sqliteErr) {
+			if errors.Is(sqliteErr.Code, sqlite3.ErrNotFound) {
+				return query.User{}, errs.
+					NewNotFound(op, err, "no users found").
+					WithMessages([]errs.Message{{Key: "message", Value: "no users found"}}).
+					WithContext("id", id)
+			}
+		}
+		return query.User{}, errs.NewUnknownError(op, err, "failed to get user by id")
 	}
 
-	return modelToQueryUser(userModel)
+	queryUser, err := modelToQueryUser(userModel)
+	if err != nil {
+		return query.User{}, errs.WithOp(op, err, "failed to convert model to query user")
+	}
+	return queryUser, nil
 }
 
 func (r *SQLiteRepo) GetUserByChatID(
 	ctx context.Context,
 	chatID user.TelegramID,
 ) (query.User, error) {
-	const op = "domain.user.sqlite.get_user_by_chat_id"
+	op := errs.Op("domain.user.sqlite.get_user_by_chat_id")
 	q := sqlc.New(r.db)
 
 	userModel, err := q.GetUserByChatID(ctx, int64(chatID))
 	if err != nil {
-		return query.User{}, errs.NewMsgError(op, err, "failed to get user by chat id")
+		var sqliteErr sqlite3.Error
+		if errors.As(err, &sqliteErr) {
+			if errors.Is(sqliteErr.Code, sqlite3.ErrNotFound) {
+				return query.User{}, errs.
+					NewNotFound(op, err, "no users found").
+					WithMessages([]errs.Message{{Key: "message", Value: "no users found"}}).
+					WithContext("chat_id", chatID)
+			}
+		}
+		return query.User{}, errs.NewUnknownError(op, err, "failed to get user by chat id")
 	}
 
 	queryUser, err := modelToQueryUser(userModel)
 	if err != nil {
-		return query.User{}, errs.NewMsgError(op, err, "failed to convert user model into query")
+		return query.User{}, errs.WithOp(op, err, "failed to convert model to query user")
 	}
 	return queryUser, nil
 }
@@ -168,15 +232,28 @@ func (r *SQLiteRepo) GetUserByTelegramID(
 	ctx context.Context,
 	id user.TelegramID,
 ) (*user.User, error) {
-	const op = "domain.user.sqlite.get_user_by_telegram_id"
+	op := errs.Op("domain.user.sqlite.get_user_by_telegram_id")
 	q := sqlc.New(r.db)
 
 	userModel, err := q.GetUserByChatID(ctx, int64(id))
 	if err != nil {
-		return nil, errs.NewMsgError(op, err, "failed to get user by telegram id")
+		var sqliteErr sqlite3.Error
+		if errors.As(err, &sqliteErr) {
+			if errors.Is(sqliteErr.Code, sqlite3.ErrNotFound) {
+				return nil, errs.
+					NewNotFound(op, err, "no users found").
+					WithMessages([]errs.Message{{Key: "message", Value: "no users found"}}).
+					WithContext("chat_id", id)
+			}
+		}
+		return nil, errs.NewUnknownError(op, err, "failed to get user by telegram id")
 	}
 
-	return modelToUser(userModel)
+	domainUser, err := modelToUser(userModel)
+	if err != nil {
+		return nil, errs.WithOp(op, err, "failed to convert model to user")
+	}
+	return domainUser, nil
 }
 
 func userToModel(u *user.User) sqlc.User {
@@ -191,32 +268,40 @@ func userToModel(u *user.User) sqlc.User {
 }
 
 func modelToUser(u sqlc.User) (*user.User, error) {
+	op := errs.Op("domain.user.sqlite.model_to_user")
+
 	reminderTime, err := modelToReminderTime(u.ReminderTime)
 	if err != nil {
-		return nil, err
+		return nil, errs.WithOp(op, err, "failed to convert reminder time")
 	}
 
 	// @@TODO: change language from default one to the one from the database, i did not figure out how to do it
 	settings, err := user.NewSettings(pointers.New(user.DefaultLanguage()), reminderTime)
 	if err != nil {
-		return nil, err
+		return nil, errs.WithOp(op, err, "failed to create settings")
 	}
 
-	return user.NewUser(
+	domainUser, err := user.NewUser(
 		uuid.FromStringOrNil(u.ID),
 		user.TelegramID(u.ChatID),
 		user.WithCreatedAt(u.CreatedAt),
 		user.WithUpdatedAt(u.UpdatedAt),
 		user.WithSettings(settings),
 	)
+	if err != nil {
+		return nil, errs.WithOp(op, err, "failed to create user")
+	}
+	return domainUser, nil
 }
 
 func modelsToUsers(models []sqlc.User) ([]user.User, error) {
+	op := errs.Op("domain.user.sqlite.models_to_users")
+
 	users := make([]user.User, 0, len(models))
 	for _, model := range models {
 		domainUser, err := modelToUser(model)
 		if err != nil {
-			return nil, err
+			return nil, errs.WithOp(op, err, "failed to convert model to user")
 		}
 		users = append(users, *domainUser)
 	}
@@ -229,11 +314,7 @@ func modelToQueryUser(u sqlc.User) (query.User, error) {
 
 	reminderTime, err := modelToReminderTime(u.ReminderTime)
 	if err != nil {
-		return query.User{}, errs.NewMsgError(
-			op,
-			err,
-			"failed to convert reminder time model into domain",
-		)
+		return query.User{}, errs.WithOp(op, err, "failed to convert reminder time")
 	}
 
 	var language string
@@ -262,30 +343,31 @@ func reminderTimeToModel(rt user.ReminderTime) string {
 
 func modelToReminderTime(rt string) (user.ReminderTime, error) {
 	const op = "domain.user.sqlite.model_to_reminder_time"
+
 	rt = strings.TrimSpace(rt)
-	if rt == "" {
-		return user.ReminderTime{}, errs.NewMsgError(
-			op,
-			fmt.Errorf("reminder time is empty, have to be in this format: HOUR:MINUTE"),
-			"reminder time is empty",
-		)
+	if isValidTimeFormat(rt) {
+		return user.ReminderTime{}, errs.
+			NewIncorrectInputError(op, nil, "invalid model reminder time").
+			WithContext("value", rt)
 	}
 	var hour, minute uint8
 	parsed, err := fmt.Sscanf(rt, "%d:%d", &hour, &minute)
 	if err != nil {
-		return user.ReminderTime{}, errs.NewMsgError(
-			op,
-			err,
-			fmt.Sprintf("failed to parse model reminder time, model: %s", rt),
-		)
+		return user.ReminderTime{}, errs.
+			NewUnknownError(op, err, "failed to parse reminder time").
+			WithContext("reminder_time", rt)
 	}
 	if parsed != 2 {
-		return user.ReminderTime{}, errs.NewMsgError(
-			op,
-			err,
-			"number of parsed items are not equal to 2",
-		)
+		return user.ReminderTime{}, errs.
+			NewUnknownError(op, err, "number of parsed items are not equal to 2").
+			WithContext("reminder_time", rt).
+			WithContext("parsed", parsed)
 	}
 
 	return user.ReminderTime{Hour: hour, Minute: minute}, nil
+}
+
+func isValidTimeFormat(s string) bool {
+	_, err := time.Parse("15:04", s)
+	return err == nil
 }

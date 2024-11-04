@@ -2,11 +2,11 @@ package command
 
 import (
 	"context"
-	"fmt"
 
 	"github.com/gofrs/uuid"
 
 	"github.com/ARUMANDESU/go-revise/internal/domain/reviseitem"
+	"github.com/ARUMANDESU/go-revise/pkg/errs"
 )
 
 type DeleteReviseItem struct {
@@ -18,14 +18,18 @@ type DeleteReviseItemHandler struct {
 	repo reviseitem.Repository
 }
 
-func NewDeleteReviseItemHandler(repo reviseitem.Repository) *DeleteReviseItemHandler {
-	return &DeleteReviseItemHandler{repo: repo}
+func NewDeleteReviseItemHandler(repo reviseitem.Repository) DeleteReviseItemHandler {
+	return DeleteReviseItemHandler{repo: repo}
 }
 
 func (h *DeleteReviseItemHandler) Handle(ctx context.Context, cmd DeleteReviseItem) error {
+	op := errs.Op("application.reviseitem.command.delete_reviseitem")
 	err := h.repo.Update(ctx, cmd.ID, func(item *reviseitem.Aggregate) (*reviseitem.Aggregate, error) {
 		if !item.CanModify(cmd.UserID) {
-			return nil, fmt.Errorf("revise item cannot be deleted")
+			return nil, errs.
+				NewForbiddenError(op, nil, "user is not allowed to modify the item").
+				WithMessages([]errs.Message{{Key: "message", Value: "user is not allowed to modify the item"}}).
+				WithContext("cmd", cmd)
 		}
 
 		item.MarkAsDeleted()
@@ -33,7 +37,7 @@ func (h *DeleteReviseItemHandler) Handle(ctx context.Context, cmd DeleteReviseIt
 		return item, nil
 	})
 	if err != nil {
-		return err
+		return errs.WithOp(op, err, "failed to update revise item")
 	}
 
 	return nil

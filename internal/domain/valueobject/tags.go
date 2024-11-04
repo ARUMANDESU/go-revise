@@ -112,8 +112,7 @@ func (t *Tags) RemoveTags(tags Tags) {
 	t.RemoveMany(tags.tags...)
 }
 
-// IsValid checks if the tags list is valid.
-func (t *Tags) IsValid() bool {
+func (t *Tags) IsEmpty() bool {
 	if t == nil || len(t.tags) == 0 {
 		return false
 	}
