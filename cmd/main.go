@@ -40,7 +40,13 @@ func main() {
 
 	log.Info("starting the app", slog.Attr{Key: "env", Value: slog.StringValue(cfg.Env.String())})
 
-	db, err := adapterdb.NewSqlite(cfg.DatabaseURL)
+	dbFilePath, err := adapterdb.GetFile(cfg.DatabaseURL)
+	if err != nil {
+		log.Error("failed to get db file path", logutil.Err(err))
+		panic(err)
+	}
+
+	db, err := adapterdb.NewSqlite(dbFilePath)
 	if err != nil {
 		log.Error("failed to create new sqlite db", logutil.Err(err))
 		panic(err)
@@ -52,7 +58,7 @@ func main() {
 		panic(err)
 	}
 
-	err = adapterdb.MigrateSchema(cfg.DatabaseURL, adapterdb.MigrationsFS, "", nil)
+	err = adapterdb.MigrateSchema(dbFilePath, adapterdb.MigrationsFS, "", nil)
 	if err != nil {
 		log.Error("failed to migrate init", logutil.Err(err))
 		panic(err)

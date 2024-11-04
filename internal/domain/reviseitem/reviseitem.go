@@ -35,12 +35,11 @@ func NewReviseItemID() uuid.UUID {
 }
 
 type NewReviseItemArgs struct {
-	ID             uuid.UUID
-	UserID         uuid.UUID
-	Name           string
-	Description    string
-	Tags           valueobject.Tags
-	NextRevisionAt time.Time
+	ID          uuid.UUID
+	UserID      uuid.UUID
+	Name        string
+	Description string
+	Tags        valueobject.Tags
 }
 
 // NewReviseItem creates a new revise item. It returns an error if the arguments are invalid.
@@ -68,9 +67,9 @@ func NewReviseItem(args NewReviseItemArgs) (*ReviseItem, error) {
 	if err := valueobject.ValidateTags(args.Tags); err != nil {
 		return nil, errs.WithOp(op, err, "validating revise item tags failed")
 	}
-	if err := validateNextRevisionAt(args.NextRevisionAt); err != nil {
-		return nil, errs.WithOp(op, err, "validating, revise item next revision at failed")
-	}
+	// if err := validateNextRevisionAt(args.NextRevisionAt); err != nil {
+	// 	return nil, errs.WithOp(op, err, "validating, revise item next revision at failed")
+	// }
 
 	now := time.Now()
 	return &ReviseItem{
@@ -81,7 +80,7 @@ func NewReviseItem(args NewReviseItemArgs) (*ReviseItem, error) {
 		tags:           args.Tags,
 		createdAt:      now,
 		updatedAt:      now,
-		nextRevisionAt: args.NextRevisionAt,
+		nextRevisionAt: valueobject.DefaultReviewIntervals().Next(0),
 	}, nil
 }
 
