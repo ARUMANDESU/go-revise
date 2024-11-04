@@ -32,5 +32,9 @@ func (r RegisterUserHandler) Handle(ctx context.Context, cmd RegisterUser) error
 		return errs.WithOp(op, err, "failed to create user")
 	}
 
-	return r.userRepo.CreateUser(ctx, *user)
+	err = r.userRepo.CreateUser(ctx, *user)
+	if err != nil {
+		return errs.WithOp(op, err, "failed to create user")
+	}
+	return nil
 }

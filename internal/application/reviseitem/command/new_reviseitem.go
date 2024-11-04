@@ -32,8 +32,8 @@ type NewReviseItemHandler struct {
 	repo reviseitem.Repository
 }
 
-func NewNewReviseItemHandler(repo reviseitem.Repository) *NewReviseItemHandler {
-	return &NewReviseItemHandler{repo: repo}
+func NewNewReviseItemHandler(repo reviseitem.Repository) NewReviseItemHandler {
+	return NewReviseItemHandler{repo: repo}
 }
 
 func (h *NewReviseItemHandler) Handle(ctx context.Context, cmd NewReviseItem) error {

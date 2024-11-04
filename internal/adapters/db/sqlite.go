@@ -4,6 +4,7 @@ import (
 	"database/sql"
 	"embed"
 	"errors"
+	"log/slog"
 	"os"
 	"path/filepath"
 
@@ -73,7 +74,10 @@ func MigrateSchema(
 	}
 
 	defer func() {
-		preparedMigrations.Close()
+		err, err2 := preparedMigrations.Close()
+		if err != nil || err2 != nil {
+			slog.Error("failed to close prepared migrations", slog.String("source", err.Error()), slog.String("database", err2.Error()))
+		}
 	}()
 	if nSteps != nil {
 		err = preparedMigrations.Steps(*nSteps)

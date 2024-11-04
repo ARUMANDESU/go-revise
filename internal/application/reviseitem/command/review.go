@@ -18,8 +18,8 @@ type ReviewHandler struct {
 	repo reviseitem.Repository
 }
 
-func NewReviewHandler(repo reviseitem.Repository) *ReviewHandler {
-	return &ReviewHandler{repo: repo}
+func NewReviewHandler(repo reviseitem.Repository) ReviewHandler {
+	return ReviewHandler{repo: repo}
 }
 
 func (h *ReviewHandler) Handle(ctx context.Context, cmd Review) error {

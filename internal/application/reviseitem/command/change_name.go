@@ -19,8 +19,8 @@ type ChangeNameHandler struct {
 	repo reviseitem.Repository
 }
 
-func NewChangeNameHandler(repo reviseitem.Repository) *ChangeNameHandler {
-	return &ChangeNameHandler{repo: repo}
+func NewChangeNameHandler(repo reviseitem.Repository) ChangeNameHandler {
+	return ChangeNameHandler{repo: repo}
 }
 
 func (h *ChangeNameHandler) Handle(ctx context.Context, cmd ChangeName) error {

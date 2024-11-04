@@ -53,12 +53,15 @@ func (r *SQLiteRepo) CreateUser(ctx context.Context, u user.User) (_ error) {
 			switch {
 			case errors.Is(sqliteErr.Code, sqlite3.ErrConstraint),
 				errors.Is(sqliteErr.Code, sqlite3.ErrConstraintUnique):
-				return errs.NewAlreadyExistsError(op, err, "user already exists")
-			case errors.Is(sqliteErr.Code, sqlite3.ErrConstraintNotNull):
-				return errs.NewIncorrectInputError(op, err, "missing required fields")
+				return errs.
+					NewAlreadyExistsError(op, err, "user already exists").
+					WithMessages([]errs.Message{{Key: "message", Value: "user already exists"}}).
+					WithContext("id", u.ID())
 			}
 		}
-		return errs.NewUnknownError(op, err, "failed to create new user")
+		return errs.
+			NewUnknownError(op, err, "failed to create new user").
+			WithContext("user", u)
 	}
 
 	return nil

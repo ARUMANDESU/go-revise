@@ -18,8 +18,8 @@ type DeleteReviseItemHandler struct {
 	repo reviseitem.Repository
 }
 
-func NewDeleteReviseItemHandler(repo reviseitem.Repository) *DeleteReviseItemHandler {
-	return &DeleteReviseItemHandler{repo: repo}
+func NewDeleteReviseItemHandler(repo reviseitem.Repository) DeleteReviseItemHandler {
+	return DeleteReviseItemHandler{repo: repo}
 }
 
 func (h *DeleteReviseItemHandler) Handle(ctx context.Context, cmd DeleteReviseItem) error {

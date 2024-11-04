@@ -18,6 +18,10 @@ const (
 	envProd  Env = "prod"
 )
 
+func (e Env) String() string {
+	return string(e)
+}
+
 func (e Env) Validate() bool {
 	switch e {
 	case envLocal, envTest, envDev, envProd:
@@ -66,8 +70,13 @@ func Setup(env Env) (*slog.Logger, func()) {
 			slog.NewJSONHandler(multiWriter, &slog.HandlerOptions{Level: slog.LevelInfo}))
 	}
 
+	slog.SetDefault(log)
+
 	return log, func() {
-		logFile.Close()
+		err := logFile.Close()
+		if err != nil {
+			log.Error("failed to close log file", Err(err))
+		}
 	}
 }
 

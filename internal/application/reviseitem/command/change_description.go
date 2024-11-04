@@ -19,8 +19,8 @@ type ChangeDescriptionHandler struct {
 	repo reviseitem.Repository
 }
 
-func NewChangeDescriptionHandler(repo reviseitem.Repository) *ChangeDescriptionHandler {
-	return &ChangeDescriptionHandler{repo: repo}
+func NewChangeDescriptionHandler(repo reviseitem.Repository) ChangeDescriptionHandler {
+	return ChangeDescriptionHandler{repo: repo}
 }
 
 func (h *ChangeDescriptionHandler) Handle(ctx context.Context, cmd ChangeDescription) error {

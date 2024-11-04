@@ -22,6 +22,14 @@ type ErrorType struct {
 	t string
 }
 
+func (e ErrorType) String() string {
+	return e.t
+}
+
+func (e ErrorType) Is(target ErrorType) bool {
+	return e.t == target.t
+}
+
 // Error types not exposed to client
 var (
 	ErrorTypeUnknown = ErrorType{"unknown"}
@@ -118,7 +126,7 @@ func (e *Error) Is(target error) bool {
 	if !errors.As(target, &t) {
 		return errors.Is(e.err, target)
 	}
-	return e.errType == t.errType
+	return e.errType.Is(t.errType)
 }
 
 func (e *Error) WithContext(key string, value any) *Error {

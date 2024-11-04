@@ -19,12 +19,16 @@ import (
 	"github.com/ARUMANDESU/go-revise/pkg/pointers"
 )
 
-type SqliteRepo struct {
+type SQLiteRepo struct {
 	db *sql.DB
 }
 
+func NewSQLiteRepo(db *sql.DB) SQLiteRepo {
+	return SQLiteRepo{db: db}
+}
+
 // Save saves a revise item.
-func (r *SqliteRepo) Save(ctx context.Context, item Aggregate) (_ error) {
+func (r *SQLiteRepo) Save(ctx context.Context, item Aggregate) (_ error) {
 	op := errs.Op("domain.reviseitem.sqlite.save")
 	tags := item.Tags()
 	args := sqlc.SaveReviseItemParams{
@@ -64,7 +68,7 @@ func (r *SqliteRepo) Save(ctx context.Context, item Aggregate) (_ error) {
 
 	return nil
 }
-func (r *SqliteRepo) withTx(ctx context.Context, op errs.Op, fn func(*sqlc.Queries) error) error {
+func (r *SQLiteRepo) withTx(ctx context.Context, op errs.Op, fn func(*sqlc.Queries) error) error {
 	tx, err := r.db.BeginTx(ctx, nil)
 	if err != nil {
 		return errs.NewUnknownError(op, err, "failed to begin transaction")
@@ -93,7 +97,7 @@ func (r *SqliteRepo) withTx(ctx context.Context, op errs.Op, fn func(*sqlc.Queri
 }
 
 // Update updates a revise item.
-func (r *SqliteRepo) Update(ctx context.Context, id uuid.UUID, fn UpdateFn) (err error) {
+func (r *SQLiteRepo) Update(ctx context.Context, id uuid.UUID, fn UpdateFn) (err error) {
 	op := errs.Op("domain.reviseitem.sqlite.update")
 
 	return r.withTx(ctx, op, func(q *sqlc.Queries) error {
@@ -159,7 +163,7 @@ func (r *SqliteRepo) Update(ctx context.Context, id uuid.UUID, fn UpdateFn) (err
 
 }
 
-func (r *SqliteRepo) ListUserReviseItems(
+func (r *SQLiteRepo) ListUserReviseItems(
 	ctx context.Context,
 	userID uuid.UUID,
 	pagination valueobject.Pagination,
@@ -223,7 +227,7 @@ func (r *SqliteRepo) ListUserReviseItems(
 	return items, pagination.Metadata(totalCount), nil
 }
 
-func (r *SqliteRepo) getRevisions(ctx context.Context, q *sqlc.Queries, reviseItemID string) ([]time.Time, error) {
+func (r *SQLiteRepo) getRevisions(ctx context.Context, q *sqlc.Queries, reviseItemID string) ([]time.Time, error) {
 	op := errs.Op("domain.reviseitem.sqlite.get_revisions")
 	revisionModels, err := q.GetRevisionItemRevisions(ctx, reviseItemID)
 	if err != nil {
@@ -247,7 +251,7 @@ func (r *SqliteRepo) getRevisions(ctx context.Context, q *sqlc.Queries, reviseIt
 
 // --- Query read models implementation ---
 
-func (r *SqliteRepo) GetReviseItem(
+func (r *SQLiteRepo) GetReviseItem(
 	ctx context.Context,
 	id, userID uuid.UUID,
 ) (query.ReviseItem, error) {
@@ -305,7 +309,7 @@ func (r *SqliteRepo) GetReviseItem(
 	return reviseItem, nil
 }
 
-func (r *SqliteRepo) FetchReviseItemsDueForUser(
+func (r *SQLiteRepo) FetchReviseItemsDueForUser(
 	ctx context.Context,
 	userID uuid.UUID,
 ) ([]ReviseItem, error) {

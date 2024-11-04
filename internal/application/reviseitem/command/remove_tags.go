@@ -20,8 +20,8 @@ type RemoveTagsHandler struct {
 	repo reviseitem.Repository
 }
 
-func NewRemoveTagsHandler(repo reviseitem.Repository) *RemoveTagsHandler {
-	return &RemoveTagsHandler{repo: repo}
+func NewRemoveTagsHandler(repo reviseitem.Repository) RemoveTagsHandler {
+	return RemoveTagsHandler{repo: repo}
 }
 
 func (h *RemoveTagsHandler) Handle(ctx context.Context, cmd RemoveTags) error {

@@ -20,8 +20,8 @@ type AddTagsHandler struct {
 	repo reviseitem.Repository
 }
 
-func NewAddTagsHandler(repo reviseitem.Repository) *AddTagsHandler {
-	return &AddTagsHandler{repo: repo}
+func NewAddTagsHandler(repo reviseitem.Repository) AddTagsHandler {
+	return AddTagsHandler{repo: repo}
 }
 
 func (h *AddTagsHandler) Handle(ctx context.Context, cmd AddTags) error {
