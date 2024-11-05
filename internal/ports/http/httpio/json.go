@@ -1,4 +1,4 @@
-package handler
+package httpio
 
 import (
 	"encoding/json"
@@ -8,17 +8,19 @@ import (
 	"net/http"
 	"strings"
 
+	"github.com/ARUMANDESU/go-revise/pkg/contexts"
 	"github.com/ARUMANDESU/go-revise/pkg/errs"
+	"github.com/ARUMANDESU/go-revise/pkg/logutil"
 )
 
-type envelope map[string]any
+type Envelope map[string]any
 
 // maxRequestBodySize is the maximum size of a request body.
-// NOTE: on changing this value, don't forget to update the error message in readJSON function.
+// NOTE: on changing this value, don't forget to update the error message in ReadJSON function.
 const maxRequestBodySize = 10 << 20 // 10MB
 
-func readJSON(w http.ResponseWriter, r *http.Request, v any) error {
-	op := errs.Op("handler.readJSON")
+func ReadJSON(w http.ResponseWriter, r *http.Request, v any) error {
+	op := errs.Op("handler.read_json")
 
 	r.Body = http.MaxBytesReader(w, r.Body, maxRequestBodySize)
 
@@ -117,8 +119,8 @@ func readJSON(w http.ResponseWriter, r *http.Request, v any) error {
 	return nil
 }
 
-func writeJSON(w http.ResponseWriter, status int, data envelope, headers http.Header) error {
-	op := errs.Op("handler.writeJSON")
+func WriteJSON(w http.ResponseWriter, status int, data Envelope, headers http.Header) error {
+	op := errs.Op("handler.write_json")
 	js, err := json.MarshalIndent(data, "", "\t")
 	if err != nil {
 		return errs.
@@ -142,4 +144,17 @@ func writeJSON(w http.ResponseWriter, status int, data envelope, headers http.He
 			WithContext("write", write)
 	}
 	return nil
+}
+
+func Success(w http.ResponseWriter, r *http.Request, status int, message Envelope) {
+	if message == nil {
+		message = make(Envelope, 2)
+	}
+	message["succeeded"] = true
+	message["request_id"] = contexts.RequestID(r.Context())
+
+	err := WriteJSON(w, status, message, nil)
+	if err != nil {
+		contexts.Logger(r.Context()).Error("failed to write response", logutil.Err(err))
+	}
 }

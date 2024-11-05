@@ -8,11 +8,13 @@ import (
 	reviseitemcmd "github.com/ARUMANDESU/go-revise/internal/application/reviseitem/command"
 	reviseitemquery "github.com/ARUMANDESU/go-revise/internal/application/reviseitem/query"
 	"github.com/ARUMANDESU/go-revise/internal/domain/valueobject"
+	"github.com/ARUMANDESU/go-revise/internal/ports/http/httperr"
+	"github.com/ARUMANDESU/go-revise/internal/ports/http/httpio"
 	"github.com/ARUMANDESU/go-revise/pkg/errs"
 )
 
 func (h *Handler) NewReviseItem(w http.ResponseWriter, r *http.Request) {
-	op := errs.Op("handler.NewReviseItem")
+	op := errs.Op("handler.new_revise_item")
 	var input struct {
 		UserID      uuid.UUID `json:"user_id"`
 		Name        string    `json:"name"`
@@ -20,8 +22,8 @@ func (h *Handler) NewReviseItem(w http.ResponseWriter, r *http.Request) {
 		Tags        []string  `json:"tags,omitempty"`
 	}
 
-	if err := readJSON(w, r, &input); err != nil {
-		handleError(w, r, errs.WithOp(op, err, "failed to read JSON"))
+	if err := httpio.ReadJSON(w, r, &input); err != nil {
+		httperr.HandleError(w, r, errs.WithOp(op, err, "failed to read JSON"))
 		return
 	}
 
@@ -38,7 +40,7 @@ func (h *Handler) NewReviseItem(w http.ResponseWriter, r *http.Request) {
 
 	err := h.app.ReviseItem.Command.NewReviseItem.Handle(r.Context(), cmd)
 	if err != nil {
-		handleError(w, r, errs.WithOp(op, err, "failed to create new revise item"))
+		httperr.HandleError(w, r, errs.WithOp(op, err, "failed to create new revise item"))
 		return
 	}
 
@@ -47,15 +49,9 @@ func (h *Handler) NewReviseItem(w http.ResponseWriter, r *http.Request) {
 		reviseitemquery.GetReviseItem{ID: reviseItemID, UserID: input.UserID},
 	)
 	if err != nil {
-		handleError(w, r, errs.WithOp(op, err, "failed to get revise item"))
+		httperr.HandleError(w, r, errs.WithOp(op, err, "failed to get revise item"))
 		return
 	}
 
-	response := map[string]interface{}{"revise_item": queryReviseItem}
-
-	err = writeJSON(w, http.StatusCreated, response, nil)
-	if err != nil {
-		handleError(w, r, errs.WithOp(op, err, "failed to write response"))
-		return
-	}
+	httpio.Success(w, r, http.StatusCreated, httpio.Envelope{"revise_item": queryReviseItem})
 }
