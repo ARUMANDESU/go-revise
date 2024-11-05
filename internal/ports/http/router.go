@@ -26,10 +26,11 @@ func (p *Port) setUpRouter() {
 		v1.Route("/users", func(r chi.Router) {
 			r.Post("/register", p.handler.RegisterUser)
 
-			r.Get("/", p.handler.GetUser)
+			r.With(p.middleware.Auth).Get("/", p.handler.GetUser)
 		})
 
 		v1.Route("/revise-items", func(r chi.Router) {
+			r.Use(p.middleware.Auth)
 			r.Post("/", p.handler.NewReviseItem)
 
 			r.Get("/", p.handler.GetReviseItem)

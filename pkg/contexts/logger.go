@@ -7,7 +7,7 @@ import (
 
 var loggerKey CtxKey = "logger"
 
-func LoggerFromContext(ctx context.Context) *slog.Logger {
+func Logger(ctx context.Context) *slog.Logger {
 	l, ok := ctx.Value(loggerKey).(*slog.Logger)
 	if !ok {
 		return slog.Default()

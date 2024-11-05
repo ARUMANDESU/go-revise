@@ -35,10 +35,13 @@ func main() {
 
 	cfg := config.MustLoad()
 
-	log, teardown := logutil.Setup(cfg.Env)
+	log, teardown := logutil.Setup(cfg.EnvMode)
 	defer teardown()
 
-	log.Info("starting the app", slog.Attr{Key: "env", Value: slog.StringValue(cfg.Env.String())})
+	log.Info(
+		"starting the app",
+		slog.Attr{Key: "env", Value: slog.StringValue(cfg.EnvMode.String())},
+	)
 
 	dbFilePath, err := adapterdb.GetFile(cfg.DatabaseURL)
 	if err != nil {
@@ -95,7 +98,7 @@ func main() {
 		Notification: notification.Application{}, // TODO: implement notification
 	}
 
-	httpPort := httport.NewHTTPPort(app)
+	httpPort := httport.NewHTTPPort(cfg, app)
 
 	go func() {
 		err := httpPort.Start(cfg.HTTP.Port)

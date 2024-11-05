@@ -6,46 +6,25 @@ import (
 	"log/slog"
 	"os"
 	"path/filepath"
+
+	"github.com/ARUMANDESU/go-revise/pkg/env"
 )
-
-// Env represents the environment in which the application is running
-type Env string
-
-const (
-	envLocal Env = "local"
-	envTest  Env = "test"
-	envDev   Env = "dev"
-	envProd  Env = "prod"
-)
-
-func (e Env) String() string {
-	return string(e)
-}
-
-func (e Env) Validate() bool {
-	switch e {
-	case envLocal, envTest, envDev, envProd:
-		return true
-	default:
-		return false
-	}
-}
 
 // Setup creates a new logger based on the environment
 //
 // WARNING: panics if any errors occur during setup
 //
 // REMINDER: don't forget to call the cleanup function to close the log file
-func Setup(env Env) (*slog.Logger, func()) {
-	ok := env.Validate()
+func Setup(mode env.Mode) (*slog.Logger, func()) {
+	ok := mode.Validate()
 	if !ok {
 		panic(fmt.Errorf(
-			"invalid environment: %s is not a valid environment, must be one of: %s, %s, %s, %s",
-			env,
-			envLocal,
-			envTest,
-			envDev,
-			envProd,
+			"invalid environment mode: %s is not a valid environment, must be one of: %s, %s, %s, %s",
+			mode,
+			env.Local,
+			env.Test,
+			env.Dev,
+			env.Prod,
 		))
 	}
 
@@ -55,14 +34,14 @@ func Setup(env Env) (*slog.Logger, func()) {
 	multiWriter := io.MultiWriter(os.Stdout, logFile)
 
 	var log *slog.Logger
-	switch env {
-	case envLocal, envTest:
+	switch mode {
+	case env.Local, env.Test:
 		log = slog.New(
 			slog.NewTextHandler(multiWriter, &slog.HandlerOptions{Level: slog.LevelDebug}))
-	case envDev:
+	case env.Dev:
 		log = slog.New(
 			slog.NewJSONHandler(multiWriter, &slog.HandlerOptions{Level: slog.LevelDebug}))
-	case envProd:
+	case env.Prod:
 		log = slog.New(
 			slog.NewJSONHandler(multiWriter, &slog.HandlerOptions{Level: slog.LevelInfo}))
 	default:

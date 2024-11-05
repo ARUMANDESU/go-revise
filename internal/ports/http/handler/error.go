@@ -11,8 +11,8 @@ import (
 
 func handleError(w http.ResponseWriter, r *http.Request, err error) {
 	op := errs.Op("handler.handleError")
-	log := contexts.LoggerFromContext(r.Context())
-	requestID := contexts.GetRequestID(r.Context())
+	log := contexts.Logger(r.Context())
+	requestID := contexts.RequestID(r.Context())
 
 	log.With("request_id", requestID)
 

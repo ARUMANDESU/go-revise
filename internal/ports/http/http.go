@@ -7,20 +7,24 @@ import (
 	"github.com/go-chi/chi/v5"
 
 	"github.com/ARUMANDESU/go-revise/internal/application"
+	"github.com/ARUMANDESU/go-revise/internal/config"
 	"github.com/ARUMANDESU/go-revise/internal/ports/http/handler"
+	"github.com/ARUMANDESU/go-revise/internal/ports/http/middlewares"
 	"github.com/ARUMANDESU/go-revise/pkg/errs"
 )
 
 type Port struct {
-	server  *http.Server
-	mux     *chi.Mux
-	handler *handler.Handler
+	server     *http.Server
+	mux        *chi.Mux
+	handler    *handler.Handler
+	middleware middlewares.Middleware
 }
 
-func NewHTTPPort(app application.Application) *Port {
+func NewHTTPPort(cfg config.Config, app application.Application) *Port {
 	return &Port{
-		handler: handler.NewHandler(app),
-		mux:     chi.NewRouter(),
+		handler:    handler.NewHandler(app),
+		mux:        chi.NewRouter(),
+		middleware: middlewares.NewMiddleware(cfg.EnvMode, cfg.Telegram.Token),
 	}
 }
 
