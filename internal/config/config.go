@@ -21,9 +21,10 @@ type Config struct {
 }
 
 type Telegram struct {
-	Token      string `yaml:"token"       env:"TELEGRAM_TOKEN"`
-	WebhookURL string `yaml:"webhook_url" env:"TELEGRAM_WEBHOOK_URL"`
-	URL        string `yaml:"url"         env:"TELEGRAM_URL"`
+	EnvMode    env.Mode `yaml:"-"           env:"-"`
+	Token      string   `yaml:"token"       env:"TELEGRAM_TOKEN"`
+	WebhookURL string   `yaml:"webhook_url" env:"TELEGRAM_WEBHOOK_URL"`
+	URL        string   `yaml:"url"         env:"TELEGRAM_URL"`
 }
 
 type HTTP struct {
@@ -60,6 +61,7 @@ func loadByPath(configPath string) (Config, error) {
 		return Config{}, fmt.Errorf("failed to read config: %w", err)
 	}
 
+	cfg.Telegram.EnvMode = cfg.EnvMode
 	return cfg, nil
 }
 
@@ -69,6 +71,8 @@ func mustLoadFromEnv() Config {
 	if err := cleanenv.ReadEnv(&cfg); err != nil {
 		panic("Mode empty")
 	}
+
+	cfg.Telegram.EnvMode = cfg.EnvMode
 	return cfg
 }
 

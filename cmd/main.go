@@ -24,6 +24,7 @@ import (
 	"github.com/ARUMANDESU/go-revise/internal/domain/reviseitem"
 	"github.com/ARUMANDESU/go-revise/internal/domain/user/repository"
 	httport "github.com/ARUMANDESU/go-revise/internal/ports/http"
+	"github.com/ARUMANDESU/go-revise/internal/ports/tgbot"
 	"github.com/ARUMANDESU/go-revise/pkg/logutil"
 )
 
@@ -99,11 +100,22 @@ func main() {
 	}
 
 	httpPort := httport.NewHTTPPort(cfg, app)
+	tgBotPort, err := tgbot.NewTgBot(cfg.Telegram, app)
+	if err != nil {
+		log.Error("failed to create new telegram bot port", logutil.Err(err))
+	}
 
 	go func() {
 		err := httpPort.Start(cfg.HTTP.Port)
 		if err != nil && !errors.Is(err, http.ErrServerClosed) {
 			log.Error("failed to start http port", logutil.Err(err))
+		}
+	}()
+
+	go func() {
+		err := tgBotPort.Start()
+		if err != nil {
+			log.Error("failed to start telegram bot port", logutil.Err(err))
 		}
 	}()
 
@@ -114,5 +126,15 @@ func main() {
 	defer log.Info("application stopped", slog.String("signal", sign.String()))
 	log.Info("stopping application", slog.String("signal", sign.String()))
 
-	err = httpPort.Stop()
+	go func() {
+		err := httpPort.Stop()
+		if err != nil {
+			log.Error("failed to stop http port", logutil.Err(err))
+		}
+	}()
+
+	err = tgBotPort.Stop()
+	if err != nil {
+		log.Error("failed to stop telegram bot port", logutil.Err(err))
+	}
 }
