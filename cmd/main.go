@@ -1,6 +1,7 @@
 package main
 
 import (
+	"context"
 	"errors"
 	"fmt"
 	"log/slog"
@@ -35,6 +36,8 @@ func main() {
 	}
 
 	cfg := config.MustLoad()
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
 
 	log, teardown := logutil.Setup(cfg.EnvMode)
 	defer teardown()
@@ -99,11 +102,32 @@ func main() {
 		Notification: notification.Application{}, // TODO: implement notification
 	}
 
-	httpPort := httport.NewHTTPPort(cfg, app)
-	tgBotPort, err := tgbot.NewTgBot(cfg.Telegram, app)
+	httpPort := httport.NewPort(cfg, app)
+	tgBotPort, err := tgbot.NewPort(cfg.Telegram, app)
 	if err != nil {
 		log.Error("failed to create new telegram bot port", logutil.Err(err))
 	}
+
+	go func() {
+		stop := make(chan os.Signal, 1)
+		signal.Notify(stop, syscall.SIGTERM, syscall.SIGINT)
+
+		sign := <-stop
+		log.Info("stopping application", slog.String("signal", sign.String()))
+		cancel()
+
+		go func() {
+			err := httpPort.Stop()
+			if err != nil {
+				log.Error("failed to stop http port", logutil.Err(err))
+			}
+		}()
+
+		err = tgBotPort.Stop()
+		if err != nil {
+			log.Error("failed to stop telegram bot port", logutil.Err(err))
+		}
+	}()
 
 	go func() {
 		err := httpPort.Start(cfg.HTTP.Port)
@@ -119,22 +143,6 @@ func main() {
 		}
 	}()
 
-	stop := make(chan os.Signal, 1)
-	signal.Notify(stop, syscall.SIGTERM, syscall.SIGINT)
-
-	sign := <-stop
-	defer log.Info("application stopped", slog.String("signal", sign.String()))
-	log.Info("stopping application", slog.String("signal", sign.String()))
-
-	go func() {
-		err := httpPort.Stop()
-		if err != nil {
-			log.Error("failed to stop http port", logutil.Err(err))
-		}
-	}()
-
-	err = tgBotPort.Stop()
-	if err != nil {
-		log.Error("failed to stop telegram bot port", logutil.Err(err))
-	}
+	<-ctx.Done()
+	log.Info("application stopped")
 }

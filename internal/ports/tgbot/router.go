@@ -1,5 +1,5 @@
 package tgbot
 
-func (t *TgBot) setUpRouter() {
-	t.bot.Handle("/start", t.handler.StartBot)
+func (p *Port) setUpRouter() {
+	p.bot.Handle("/start", p.handler.StartBot)
 }

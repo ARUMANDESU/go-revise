@@ -13,21 +13,15 @@ import (
 	"github.com/ARUMANDESU/go-revise/pkg/logutil"
 )
 
-type TgBot struct {
+type Port struct {
 	bot           *tb.Bot
 	webhookPoller *tb.Webhook
 	httpClient    *http.Client
-	httpServer    *http.Server
 	handler       *handler.Handler
 }
 
-func NewTgBot(cfg config.Telegram, app application.Application) (TgBot, error) {
+func NewPort(cfg config.Telegram, app application.Application) (Port, error) {
 	httpClient := http.Client{}
-	httpServer := http.Server{
-		Addr: cfg.WebhookURL,
-	}
-
-	go httpServer.ListenAndServe()
 
 	webhookPoller := tb.Webhook{
 		Listen: cfg.URL,
@@ -39,7 +33,7 @@ func NewTgBot(cfg config.Telegram, app application.Application) (TgBot, error) {
 		Token:   cfg.Token,
 		Verbose: cfg.EnvMode != env.Prod,
 		Offline: cfg.EnvMode == env.Test,
-		// ParseMode: tb.ModeMarkdownV2,
+		// ParseMode: tb.ModeMarkdownV2, // WARNING: this will break the bot
 		OnError: func(err error, c tb.Context) {
 			if c != nil {
 				slog.Error("error captured", logutil.Err(err), slog.Int("update_id", c.Update().ID))
@@ -51,27 +45,26 @@ func NewTgBot(cfg config.Telegram, app application.Application) (TgBot, error) {
 		Poller: &webhookPoller,
 	})
 	if err != nil {
-		return TgBot{}, err
+		return Port{}, err
 	}
 
-	return TgBot{
+	return Port{
 		bot:           bot,
 		webhookPoller: &webhookPoller,
 		httpClient:    &httpClient,
-		httpServer:    &httpServer,
 		handler:       handler.NewHandler(app),
 	}, nil
 }
 
 // Start starts the bot.
 // NOTE: this is blocking call
-func (t *TgBot) Start() error {
-	t.setUpRouter()
-	t.bot.Start() // NOTE: this is blocking call
+func (p *Port) Start() error {
+	p.setUpRouter()
+	p.bot.Start() // NOTE: this is blocking call
 	return nil
 }
 
-func (t *TgBot) Stop() error {
-	t.bot.Stop()
-	return t.httpServer.Close()
+func (p *Port) Stop() error {
+	p.bot.Stop()
+	return nil
 }

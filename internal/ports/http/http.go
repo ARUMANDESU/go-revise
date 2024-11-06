@@ -20,7 +20,7 @@ type Port struct {
 	middleware middlewares.Middleware
 }
 
-func NewHTTPPort(cfg config.Config, app application.Application) *Port {
+func NewPort(cfg config.Config, app application.Application) *Port {
 	return &Port{
 		handler:    handler.NewHandler(app),
 		mux:        chi.NewRouter(),
