@@ -36,7 +36,7 @@ func main() {
 	}
 
 	cfg := config.MustLoad()
-	ctx, cancel := context.WithCancel(context.Background())
+	_, cancel := context.WithCancel(context.Background())
 	defer cancel()
 
 	log, teardown := logutil.Setup(cfg.EnvMode)
@@ -108,6 +108,7 @@ func main() {
 		log.Error("failed to create new telegram bot port", logutil.Err(err))
 	}
 
+	gracefulShutdown := make(chan struct{})
 	go func() {
 		stop := make(chan os.Signal, 1)
 		signal.Notify(stop, syscall.SIGTERM, syscall.SIGINT)
@@ -116,17 +117,17 @@ func main() {
 		log.Info("stopping application", slog.String("signal", sign.String()))
 		cancel()
 
-		go func() {
-			err := httpPort.Stop()
-			if err != nil {
-				log.Error("failed to stop http port", logutil.Err(err))
-			}
-		}()
-
-		err = tgBotPort.Stop()
+		err := httpPort.Stop()
 		if err != nil {
-			log.Error("failed to stop telegram bot port", logutil.Err(err))
+			log.Error("failed to stop http port", logutil.Err(err))
 		}
+
+		// err = tgBotPort.Stop()
+		// if err != nil {
+		// 	log.Error("failed to stop telegram bot port", logutil.Err(err))
+		// }
+
+		close(gracefulShutdown)
 	}()
 
 	go func() {
@@ -143,6 +144,6 @@ func main() {
 		}
 	}()
 
-	<-ctx.Done()
+	<-gracefulShutdown
 	log.Info("application stopped")
 }
