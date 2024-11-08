@@ -11,6 +11,7 @@ import (
 	"github.com/golang-migrate/migrate/v4"
 	"github.com/golang-migrate/migrate/v4/database/sqlite"
 	"github.com/golang-migrate/migrate/v4/source/iofs"
+	_ "modernc.org/sqlite"
 
 	"github.com/ARUMANDESU/go-revise/pkg/errs"
 )
@@ -21,7 +22,7 @@ var MigrationsFS embed.FS
 func NewSqlite(filePath string) (*sql.DB, error) {
 	op := errs.Op("adapters.db.sqlite.new_sqlite")
 
-	db, err := sql.Open("sqlite3", filePath)
+	db, err := sql.Open("sqlite", filePath)
 	if err != nil {
 		return nil, errs.NewUnknownError(op, err, "failed to connect to sqlite database")
 	}
@@ -46,7 +47,7 @@ func MigrateSchema(
 	if migrationTable == "" {
 		migrationTable = "migrations"
 	}
-	db, err := sql.Open("sqlite3", filePath)
+	db, err := sql.Open("sqlite", filePath)
 	if err != nil {
 		return errs.NewUnknownError(op, err, "failed to open sqlite connection")
 	}
@@ -76,7 +77,11 @@ func MigrateSchema(
 	defer func() {
 		err, err2 := preparedMigrations.Close()
 		if err != nil || err2 != nil {
-			slog.Error("failed to close prepared migrations", slog.String("source", err.Error()), slog.String("database", err2.Error()))
+			slog.Error(
+				"failed to close prepared migrations",
+				slog.String("source", err.Error()),
+				slog.String("database", err2.Error()),
+			)
 		}
 	}()
 	if nSteps != nil {

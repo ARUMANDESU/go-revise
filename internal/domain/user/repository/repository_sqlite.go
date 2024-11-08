@@ -3,16 +3,15 @@ package repository
 import (
 	"context"
 	"database/sql"
-	"errors"
 	"fmt"
 	"log/slog"
 	"strings"
 	"time"
 
 	"github.com/gofrs/uuid"
-	"github.com/mattn/go-sqlite3"
 
 	"github.com/ARUMANDESU/go-revise/internal/adapters/db/sqlc"
+	"github.com/ARUMANDESU/go-revise/internal/adapters/db/sqliterr"
 	"github.com/ARUMANDESU/go-revise/internal/application/user/query"
 	"github.com/ARUMANDESU/go-revise/internal/domain/user"
 	"github.com/ARUMANDESU/go-revise/pkg/errs"
@@ -48,20 +47,7 @@ func (r *SQLiteRepo) CreateUser(ctx context.Context, u user.User) (_ error) {
 
 	err := sqlc.New(r.db).CreateUser(ctx, params)
 	if err != nil {
-		var sqliteErr sqlite3.Error
-		if errors.As(err, &sqliteErr) {
-			switch {
-			case errors.Is(sqliteErr.Code, sqlite3.ErrConstraint),
-				errors.Is(sqliteErr.Code, sqlite3.ErrConstraintUnique):
-				return errs.
-					NewAlreadyExistsError(op, err, "user already exists").
-					WithMessages([]errs.Message{{Key: "message", Value: "user already exists"}}).
-					WithContext("id", u.ID())
-			}
-		}
-		return errs.
-			NewUnknownError(op, err, "failed to create new user").
-			WithContext("user", u)
+		return sqliterr.Handle(op, err, "failed to create user").WithContext("user", u)
 	}
 
 	return nil
@@ -70,15 +56,15 @@ func (r *SQLiteRepo) CreateUser(ctx context.Context, u user.User) (_ error) {
 func (r *SQLiteRepo) withTx(ctx context.Context, op errs.Op, fn func(*sqlc.Queries) error) error {
 	tx, err := r.db.BeginTx(ctx, nil)
 	if err != nil {
-		return errs.NewUnknownError(op, err, "failed to begin transaction")
+		return sqliterr.HandleTx(op, err, "failed to begin transaction")
 	}
 
 	defer func() {
 		if err != nil {
 			if rollbackErr := tx.Rollback(); rollbackErr != nil {
-				slog.Error("failed to rollback transaction",
-					logutil.Err(rollbackErr),
-					"original_error", err)
+				slog.
+					With(slog.String("op", string(op))).
+					Error("failed to rollback transaction", logutil.Err(rollbackErr), "original_error", err)
 			}
 		}
 	}()
@@ -89,7 +75,7 @@ func (r *SQLiteRepo) withTx(ctx context.Context, op errs.Op, fn func(*sqlc.Queri
 	}
 
 	if err = tx.Commit(); err != nil {
-		return errs.NewUnknownError(op, err, "failed to commit transaction")
+		return sqliterr.HandleTx(op, err, "failed to commit transaction")
 	}
 
 	return nil
@@ -105,16 +91,7 @@ func (r *SQLiteRepo) UpdateUser(
 	return r.withTx(ctx, op, func(q *sqlc.Queries) error {
 		userModel, err := q.GetUserByID(ctx, userID.String())
 		if err != nil {
-			var sqliteErr sqlite3.Error
-			if errors.As(err, &sqliteErr) {
-				if errors.Is(sqliteErr.Code, sqlite3.ErrNotFound) {
-					return errs.
-						NewNotFound(op, err, "no users found").
-						WithMessages([]errs.Message{{Key: "message", Value: "no users found"}}).
-						WithContext("id", userID)
-				}
-			}
-			return errs.NewUnknownError(op, err, "failed to get user by id")
+			return sqliterr.Handle(op, err, "failed to get user by id").WithContext("id", userID)
 		}
 
 		domainUser, err := modelToUser(userModel)
@@ -135,11 +112,7 @@ func (r *SQLiteRepo) UpdateUser(
 			ID:           userModel.ID,
 		})
 		if err != nil {
-			var sqliteErr sqlite3.Error
-			if errors.As(err, &sqliteErr) {
-				// TODO: optimistic concurrency control (OCC) handling
-			}
-			return errs.NewUnknownError(op, err, "failed to update user")
+			return sqliterr.Handle(op, err, "failed to update user")
 		}
 
 		return nil
@@ -156,16 +129,9 @@ func (r *SQLiteRepo) GetUsersForNotification(ctx context.Context) ([]user.User, 
 	})
 	userModels, err := q.GetUsersByReminderTime(ctx, reminderTimeModel)
 	if err != nil {
-		var sqliteErr sqlite3.Error
-		if errors.As(err, &sqliteErr) {
-			if errors.Is(sqliteErr.Code, sqlite3.ErrNotFound) {
-				return nil, errs.
-					NewNotFound(op, err, "no users found").
-					WithMessages([]errs.Message{{Key: "message", Value: "no users found"}}).
-					WithContext("reminder_time", reminderTimeModel)
-			}
-		}
-		return nil, errs.NewUnknownError(op, err, "failed to get users by reminder time")
+		return nil, sqliterr.
+			Handle(op, err, "failed to get users by reminder time").
+			WithContext("reminder_time", reminderTimeModel)
 	}
 
 	users, err := modelsToUsers(userModels)
@@ -181,16 +147,9 @@ func (r *SQLiteRepo) GetUserByID(ctx context.Context, id uuid.UUID) (query.User,
 
 	userModel, err := q.GetUserByID(ctx, id.String())
 	if err != nil {
-		var sqliteErr sqlite3.Error
-		if errors.As(err, &sqliteErr) {
-			if errors.Is(sqliteErr.Code, sqlite3.ErrNotFound) {
-				return query.User{}, errs.
-					NewNotFound(op, err, "no users found").
-					WithMessages([]errs.Message{{Key: "message", Value: "no users found"}}).
-					WithContext("id", id)
-			}
-		}
-		return query.User{}, errs.NewUnknownError(op, err, "failed to get user by id")
+		return query.User{}, sqliterr.
+			Handle(op, err, "failed to get user by id").
+			WithContext("id", id)
 	}
 
 	queryUser, err := modelToQueryUser(userModel)
@@ -209,16 +168,9 @@ func (r *SQLiteRepo) GetUserByChatID(
 
 	userModel, err := q.GetUserByChatID(ctx, int64(chatID))
 	if err != nil {
-		var sqliteErr sqlite3.Error
-		if errors.As(err, &sqliteErr) {
-			if errors.Is(sqliteErr.Code, sqlite3.ErrNotFound) {
-				return query.User{}, errs.
-					NewNotFound(op, err, "no users found").
-					WithMessages([]errs.Message{{Key: "message", Value: "no users found"}}).
-					WithContext("chat_id", chatID)
-			}
-		}
-		return query.User{}, errs.NewUnknownError(op, err, "failed to get user by chat id")
+		return query.User{}, sqliterr.
+			Handle(op, err, "failed to get user by chat id").
+			WithContext("chat_id", chatID)
 	}
 
 	queryUser, err := modelToQueryUser(userModel)
@@ -237,16 +189,9 @@ func (r *SQLiteRepo) GetUserByTelegramID(
 
 	userModel, err := q.GetUserByChatID(ctx, int64(id))
 	if err != nil {
-		var sqliteErr sqlite3.Error
-		if errors.As(err, &sqliteErr) {
-			if errors.Is(sqliteErr.Code, sqlite3.ErrNotFound) {
-				return nil, errs.
-					NewNotFound(op, err, "no users found").
-					WithMessages([]errs.Message{{Key: "message", Value: "no users found"}}).
-					WithContext("chat_id", id)
-			}
-		}
-		return nil, errs.NewUnknownError(op, err, "failed to get user by telegram id")
+		return nil, sqliterr.
+			Handle(op, err, "failed to get user by chat id").
+			WithContext("chat_id", id)
 	}
 
 	domainUser, err := modelToUser(userModel)

@@ -53,7 +53,7 @@ func TestUserApp_RegisterUser(t *testing.T) {
 			} else {
 				require.Error(t, err)
 				assert.IsType(t, tt.expectedErr, err)
-				assert.Equal(t, tt.expectedErrType, err.(*errs.Error).Type)
+				assert.Equal(t, tt.expectedErrType, err.(*errs.Error).Type())
 				return
 			}
 

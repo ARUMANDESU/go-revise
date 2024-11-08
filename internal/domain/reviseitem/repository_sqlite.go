@@ -3,15 +3,14 @@ package reviseitem
 import (
 	"context"
 	"database/sql"
-	"errors"
 	"log/slog"
 	"strings"
 	"time"
 
 	"github.com/gofrs/uuid"
-	"github.com/mattn/go-sqlite3"
 
 	"github.com/ARUMANDESU/go-revise/internal/adapters/db/sqlc"
+	"github.com/ARUMANDESU/go-revise/internal/adapters/db/sqliterr"
 	"github.com/ARUMANDESU/go-revise/internal/application/reviseitem/query"
 	"github.com/ARUMANDESU/go-revise/internal/domain/valueobject"
 	"github.com/ARUMANDESU/go-revise/pkg/errs"
@@ -47,39 +46,26 @@ func (r *SQLiteRepo) Save(ctx context.Context, item Aggregate) (_ error) {
 
 	err := q.SaveReviseItem(ctx, args)
 	if err != nil {
-		var sqliteErr sqlite3.Error
-		if errors.As(err, &sqliteErr) {
-			switch {
-			case errors.Is(err, sqlite3.ErrConstraintUnique):
-				return errs.
-					NewAlreadyExistsError(op, err, "revise item already exists").
-					WithMessages([]errs.Message{{Key: "message", Value: "revise item already exists"}}).
-					WithContext("args", args)
-			case errors.Is(err, sqlite3.ErrConstraint):
-				return errs.
-					NewUnknownError(op, err, "constraint error").
-					WithContext("args", args)
-			}
-		}
-		return errs.
-			NewUnknownError(op, err, "failed to save reviseitem").
-			WithContext("args", args)
+		return sqliterr.Handle(op, err, "failed to save revise item").WithContext("args", args)
 	}
 
 	return nil
 }
+
 func (r *SQLiteRepo) withTx(ctx context.Context, op errs.Op, fn func(*sqlc.Queries) error) error {
 	tx, err := r.db.BeginTx(ctx, nil)
 	if err != nil {
-		return errs.NewUnknownError(op, err, "failed to begin transaction")
+		return sqliterr.HandleTx(op, err, "failed to begin transaction")
 	}
 
 	defer func() {
 		if err != nil {
 			if rollbackErr := tx.Rollback(); rollbackErr != nil {
-				slog.Error("failed to rollback transaction",
-					logutil.Err(rollbackErr),
-					"original_error", err)
+				slog.
+					With(slog.String("op", string(op))).
+					Error("failed to rollback transaction",
+						logutil.Err(rollbackErr),
+						"original_error", err)
 			}
 		}
 	}()
@@ -90,7 +76,7 @@ func (r *SQLiteRepo) withTx(ctx context.Context, op errs.Op, fn func(*sqlc.Queri
 	}
 
 	if err = tx.Commit(); err != nil {
-		return errs.NewUnknownError(op, err, "failed to commit transaction")
+		return sqliterr.HandleTx(op, err, "failed to commit transaction")
 	}
 
 	return nil
@@ -103,16 +89,7 @@ func (r *SQLiteRepo) Update(ctx context.Context, id uuid.UUID, fn UpdateFn) (err
 	return r.withTx(ctx, op, func(q *sqlc.Queries) error {
 		reviseItemModel, err := q.GetReviseItem(ctx, id.String())
 		if err != nil {
-			var sqliteErr sqlite3.Error
-			if errors.As(err, &sqliteErr) {
-				if errors.Is(err, sqlite3.ErrNotFound) {
-					return errs.
-						NewNotFound(op, err, "revise item not found").
-						WithMessages([]errs.Message{{Key: "message", Value: "revise item not found"}}).
-						WithContext("id", id)
-				}
-			}
-			return errs.NewUnknownError(op, err, "failed to get revise item").WithContext("id", id)
+			return sqliterr.Handle(op, err, "failed to get revise item").WithContext("id", id)
 		}
 
 		reviseItem, err := modelToReviseItem(reviseItemModel)
@@ -136,7 +113,9 @@ func (r *SQLiteRepo) Update(ctx context.Context, id uuid.UUID, fn UpdateFn) (err
 
 			err = q.CreateRevision(ctx, args)
 			if err != nil {
-				return errs.WithOp(op, err, "failed to create revision")
+				return sqliterr.
+					Handle(op, err, "failed to create revision").
+					WithContext("args", args)
 			}
 		}
 
@@ -155,12 +134,13 @@ func (r *SQLiteRepo) Update(ctx context.Context, id uuid.UUID, fn UpdateFn) (err
 			ID:             aggregate.ID().String(),
 		})
 		if err != nil {
-			return errs.WithOp(op, err, "failed to update revise item")
+			return sqliterr.
+				Handle(op, err, "failed to update revise item").
+				WithContext("aggregate", aggregate)
 		}
 
 		return nil
 	})
-
 }
 
 func (r *SQLiteRepo) ListUserReviseItems(
@@ -177,17 +157,11 @@ func (r *SQLiteRepo) ListUserReviseItems(
 		Offset: int64(pagination.Offset()),
 	})
 	if err != nil {
-		var sqliteErr sqlite3.Error
-		if errors.As(err, &sqliteErr) && errors.Is(err, sqlite3.ErrNotFound) {
-			return nil, valueobject.PaginationMetadata{}, errs.
-				NewNotFound(op, err, "revise items not found").
-				WithMessages([]errs.Message{{Key: "message", Value: "revise items not found"}}).
-				WithContext("userID", userID)
-
-		}
-		return nil, valueobject.PaginationMetadata{}, errs.
-			NewUnknownError(op, err, "failed to list user revise items").
-			WithContext("userID", userID)
+		return nil, valueobject.PaginationMetadata{}, sqliterr.Handle(
+			op,
+			err,
+			"failed to list user revise items",
+		)
 	}
 
 	var (
@@ -216,7 +190,9 @@ func (r *SQLiteRepo) ListUserReviseItems(
 
 		revisions, err := r.getRevisions(ctx, q, item.ID)
 		if err != nil {
-			return nil, valueobject.PaginationMetadata{}, errs.WithOp(op, err, "failed to get revisions")
+			return nil, valueobject.PaginationMetadata{}, sqliterr.
+				Handle(op, err, "failed to get revisions").
+				WithContext("id", item.ID)
 		}
 
 		reviseItem.Revisions = revisions
@@ -227,20 +203,17 @@ func (r *SQLiteRepo) ListUserReviseItems(
 	return items, pagination.Metadata(totalCount), nil
 }
 
-func (r *SQLiteRepo) getRevisions(ctx context.Context, q *sqlc.Queries, reviseItemID string) ([]time.Time, error) {
+func (r *SQLiteRepo) getRevisions(
+	ctx context.Context,
+	q *sqlc.Queries,
+	reviseItemID string,
+) ([]time.Time, error) {
 	op := errs.Op("domain.reviseitem.sqlite.get_revisions")
 	revisionModels, err := q.GetRevisionItemRevisions(ctx, reviseItemID)
 	if err != nil {
-		var sqliteErr sqlite3.Error
-		if errors.As(err, &sqliteErr) {
-			if errors.Is(err, sqlite3.ErrNotFound) {
-				return nil, errs.
-					NewNotFound(op, err, "revision item revisions not found").
-					WithMessages([]errs.Message{{Key: "message", Value: "revision item revisions not found"}}).
-					WithContext("reviseItemID", reviseItemID)
-			}
-		}
-		return nil, errs.NewUnknownError(op, err, "failed to get revision item revisions")
+		return nil, sqliterr.
+			Handle(op, err, "failed to get revision item revisions").
+			WithContext("id", reviseItemID)
 	}
 	revisions := make([]time.Time, 0, len(revisionModels))
 	for _, revision := range revisionModels {
@@ -260,17 +233,8 @@ func (r *SQLiteRepo) GetReviseItem(
 
 	reviseItemModel, err := q.GetReviseItem(ctx, id.String())
 	if err != nil {
-		var sqliteErr sqlite3.Error
-		if errors.As(err, &sqliteErr) {
-			if errors.Is(err, sqlite3.ErrNotFound) {
-				return query.ReviseItem{}, errs.
-					NewNotFound(op, err, "revise item not found").
-					WithMessages([]errs.Message{{Key: "message", Value: "revise item not found"}}).
-					WithContext("id", id)
-			}
-		}
-		return query.ReviseItem{}, errs.
-			NewUnknownError(op, err, "failed to get revise item").
+		return query.ReviseItem{}, sqliterr.
+			Handle(op, err, "failed to get revise item").
 			WithContext("id", id)
 	}
 
@@ -295,8 +259,8 @@ func (r *SQLiteRepo) GetReviseItem(
 	// get revisionModels
 	revisionModels, err := q.GetRevisionItemRevisions(ctx, id.String())
 	if err != nil {
-		return query.ReviseItem{}, errs.
-			NewUnknownError(op, err, "failed to get revision item revisions").
+		return query.ReviseItem{}, sqliterr.
+			Handle(op, err, "failed to get revision item revisions").
 			WithContext("id", id)
 	}
 	revisions := make([]time.Time, 0, len(revisionModels))
@@ -322,18 +286,9 @@ func (r *SQLiteRepo) FetchReviseItemsDueForUser(
 		NextRevisionAt: dayStart.Add(24 * time.Hour), // before end of day
 	})
 	if err != nil {
-		var sqliteErr sqlite3.Error
-		if errors.As(err, &sqliteErr) {
-			if errors.Is(err, sqlite3.ErrNotFound) {
-				return nil, errs.
-					NewNotFound(op, err, "user revise items not found").
-					WithMessages([]errs.Message{{Key: "message", Value: "user revise items not found"}}).
-					WithContext("userID", userID)
-			}
-		}
-		return nil, errs.
-			NewUnknownError(op, err, "failed to get user revise items by time").
-			WithContext("userID", userID)
+		return nil, sqliterr.
+			Handle(op, err, "failed to get user revise items by time").
+			WithContext("user_id", userID)
 	}
 
 	var aggregates []ReviseItem
