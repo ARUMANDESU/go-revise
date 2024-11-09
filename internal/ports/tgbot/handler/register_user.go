@@ -8,11 +8,31 @@ import (
 
 	"github.com/ARUMANDESU/go-revise/internal/application/user/command"
 	"github.com/ARUMANDESU/go-revise/internal/domain/user"
+	"github.com/ARUMANDESU/go-revise/internal/ports/tgbot/button"
 	"github.com/ARUMANDESU/go-revise/pkg/errs"
 )
 
 func (h *Handler) RegisterUser(c tb.Context) error {
-	op := errs.Op("tgbot.hander.register_user")
+	confirmMsg := strings.Builder{}
+	confirmMsg.WriteString("🔐 *Registration Confirmation*\n\n")
+	confirmMsg.WriteString("*Data We Store:*\n")
+	confirmMsg.WriteString("• Your Telegram Chat ID\n")
+	confirmMsg.WriteString("• Revision items you create:\n")
+	confirmMsg.WriteString("  \\- Item names\n")
+	confirmMsg.WriteString("  \\- Descriptions\n")
+	confirmMsg.WriteString("  \\- Custom tags\n")
+	confirmMsg.WriteString("  \\- Creation dates\n")
+	confirmMsg.WriteString("  \\- Revision schedules\n\n")
+
+	return c.Send(
+		confirmMsg.String(),
+		&tb.SendOptions{ParseMode: tb.ModeMarkdownV2},
+		&tb.ReplyMarkup{InlineKeyboard: [][]tb.InlineButton{{button.RegistrationConfirmI}}},
+	)
+}
+
+func (h *Handler) RegisterUserConfirmed(c tb.Context) error {
+	op := errs.Op("tgbot.handler.register_user_confirmed")
 
 	err := h.app.User.Commands.RegisterUser.Handle(
 		context.TODO(),
@@ -20,6 +40,14 @@ func (h *Handler) RegisterUser(c tb.Context) error {
 	)
 	if err != nil {
 		return errs.WithOp(op, err, "failed to register user")
+	}
+
+	err = c.Edit(
+		"✅ *Registration Confirmed*",
+		&tb.SendOptions{ParseMode: tb.ModeMarkdownV2},
+	)
+	if err != nil {
+		return errs.WithOp(op, err, "failed to update confirmation message")
 	}
 
 	msg := strings.Builder{}
