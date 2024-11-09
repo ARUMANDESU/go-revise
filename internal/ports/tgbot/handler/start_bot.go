@@ -9,19 +9,20 @@ import (
 
 func (h *Handler) StartBot(c tb.Context) error {
 	startMsg := strings.Builder{}
-	startMsg.WriteString(fmt.Sprintf("Hello, %s", c.Chat().FirstName))
+	startMsg.WriteString(fmt.Sprintf("Hello, *%s*\\!\n\n", c.Chat().FirstName))
+	startMsg.WriteString("👋 *Welcome to Go\\-Revise\\!*\n\n")
 
-	startMsg.WriteString("👋 Welcome to Go-Revise!\n\n")
-	startMsg.WriteString("I'm here to help you retain and reinforce information over time. ")
-	startMsg.WriteString(
-		"Whether it's an article you've read about maps in Go or any other topic, ",
-	)
-	startMsg.WriteString(
-		"I ensure you don’t forget by prompting you to revisit the content at regular intervals.\n\n",
-	)
-	startMsg.WriteString("To get started, please register by sending the /register command.\n")
-	startMsg.WriteString(
-		"Once registered, you can start adding topics and keep your knowledge fresh!",
-	)
-	return c.Send(startMsg.String())
+	startMsg.WriteString("*What this bot does:*\n")
+	startMsg.WriteString("• Help you retain information\n")
+	startMsg.WriteString("• Reinforce learning over time\n")
+	startMsg.WriteString("• Send revision reminders\n\n")
+
+	startMsg.WriteString("*Getting Started:*\n")
+	startMsg.WriteString("1\\. Use /register to create account\n")
+	startMsg.WriteString("2\\. Add your study topics\n")
+	startMsg.WriteString("3\\. Let the bot handle your revision schedule\n\n")
+
+	startMsg.WriteString("_Ready to enhance your learning journey? Use /register to begin\\!_")
+
+	return c.Send(startMsg.String(), &tb.SendOptions{ParseMode: tb.ModeMarkdownV2})
 }

@@ -32,7 +32,6 @@ func NewPort(cfg config.Telegram, app application.Application) (Port, error) {
 		Token:   cfg.Token,
 		Verbose: cfg.EnvMode != env.Prod,
 		Offline: cfg.EnvMode == env.Test,
-		// ParseMode: tb.ModeMarkdownV2, // WARNING: this will break the bot
 		OnError: tgboterr.OnError,
 		Client:  &httpClient,
 		Poller:  &webhookPoller,

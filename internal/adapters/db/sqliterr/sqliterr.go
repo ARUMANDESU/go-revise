@@ -65,10 +65,10 @@ func HandleTx(op errs.Op, err error, msg string) *errs.Error {
 	switch sqliteErr.Code() {
 	case sqlite3.SQLITE_BUSY:
 		return errs.NewConflictError(op, err, withMsg(msg, "database is busy")).
-			WithMessages([]errs.Message{{Key: "error", Value: "please retry the operation"}})
+			WithMessages([]errs.Message{{Key: "message", Value: "please retry the operation"}})
 	case sqlite3.SQLITE_LOCKED:
 		return errs.NewConflictError(op, err, withMsg(msg, "database is locked")).
-			WithMessages([]errs.Message{{Key: "error", Value: "please retry the operation"}})
+			WithMessages([]errs.Message{{Key: "message", Value: "please retry the operation"}})
 	default:
 		return Handle(op, err, msg)
 	}
@@ -77,37 +77,37 @@ func HandleTx(op errs.Op, err error, msg string) *errs.Error {
 // Individual error handlers
 func handleUniqueConstraint(op errs.Op, err error, msg string) *errs.Error {
 	return errs.NewAlreadyExistsError(op, err, withMsg(msg, "record already exists")).
-		WithMessages([]errs.Message{{Key: "error", Value: "record already exists"}})
+		WithMessages([]errs.Message{{Key: "message", Value: "record already exists"}})
 }
 
 func handleForeignKeyConstraint(op errs.Op, err error, msg string) *errs.Error {
 	return errs.NewIncorrectInputError(op, err, withMsg(msg, "referenced record does not exist")).
-		WithMessages([]errs.Message{{Key: "error", Value: "referenced record does not exist"}})
+		WithMessages([]errs.Message{{Key: "message", Value: "referenced record does not exist"}})
 }
 
 func handleConstraint(op errs.Op, err error, msg string) *errs.Error {
 	return errs.NewIncorrectInputError(op, err, withMsg(msg, "data constraints were violated")).
-		WithMessages([]errs.Message{{Key: "error", Value: "data constraints were violated"}})
+		WithMessages([]errs.Message{{Key: "message", Value: "data constraints were violated"}})
 }
 
 func handleBusy(op errs.Op, err error, msg string) *errs.Error {
 	return errs.NewConflictError(op, err, withMsg(msg, "database is busy")).
-		WithMessages([]errs.Message{{Key: "error", Value: "please retry the operation"}})
+		WithMessages([]errs.Message{{Key: "message", Value: "please retry the operation"}})
 }
 
 func handleLocked(op errs.Op, err error, msg string) *errs.Error {
 	return errs.NewConflictError(op, err, withMsg(msg, "database is locked")).
-		WithMessages([]errs.Message{{Key: "error", Value: "please retry the operation"}})
+		WithMessages([]errs.Message{{Key: "message", Value: "please retry the operation"}})
 }
 
 func handleReadOnly(op errs.Op, err error, msg string) *errs.Error {
 	return errs.NewIncorrectInputError(op, err, withMsg(msg, "database is read-only")).
-		WithMessages([]errs.Message{{Key: "error", Value: "cannot modify read-only database"}})
+		WithMessages([]errs.Message{{Key: "message", Value: "cannot modify read-only database"}})
 }
 
 func handleNotFound(op errs.Op, err error, msg string) *errs.Error {
 	return errs.NewNotFound(op, err, withMsg(msg, "requested record was not found")).
-		WithMessages([]errs.Message{{Key: "error", Value: "requested record was not found"}})
+		WithMessages([]errs.Message{{Key: "message", Value: "requested record was not found"}})
 }
 
 func handleDatabaseFull(op errs.Op, err error, msg string) *errs.Error {
