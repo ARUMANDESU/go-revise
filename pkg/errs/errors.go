@@ -9,9 +9,7 @@ import (
 	"github.com/ARUMANDESU/go-revise/pkg/logutil"
 )
 
-var (
-	ErrInvalidInput = errors.New("invalid input")
-)
+var ErrInvalidInput = errors.New("invalid input")
 
 type Message struct {
 	Key   string
@@ -73,17 +71,21 @@ func (e *Error) Error() string {
 	strBuilder := strings.Builder{}
 	strBuilder.WriteString("type: ")
 	strBuilder.WriteString(e.errType.t)
+	strBuilder.WriteString("; ")
 	for _, opMsg := range e.opMessages {
 		strBuilder.WriteString(opMsg.String())
 		strBuilder.WriteString(", ")
 	}
+	strBuilder.WriteString("; ")
 	for k, v := range e.context {
 		strBuilder.WriteString(k)
 		strBuilder.WriteString(": ")
 		strBuilder.WriteString(fmt.Sprintf("%v", v))
 		strBuilder.WriteString(", ")
 	}
+	strBuilder.WriteString("; ")
 	strBuilder.WriteString(fmt.Sprintf("original error: %v", e.err))
+	strBuilder.WriteString("; ")
 
 	return strBuilder.String()
 }
@@ -121,6 +123,7 @@ func (e *Error) Log(logger *slog.Logger) {
 func (e *Error) Unwrap() error {
 	return e.err
 }
+
 func (e *Error) Is(target error) bool {
 	var t *Error
 	if !errors.As(target, &t) {
