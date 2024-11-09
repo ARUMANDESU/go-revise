@@ -90,7 +90,10 @@ func TestIsTagsEqual(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			got := IsTagsEqual(&tt.a, &tt.b)
-			t.Run(fmt.Sprintf("Expected %v", tt.expected), subtest.Value(got).CompareEqual(tt.expected))
+			t.Run(
+				fmt.Sprintf("Expected %v", tt.expected),
+				subtest.Value(got).CompareEqual(tt.expected),
+			)
 		})
 	}
 }
@@ -145,7 +148,10 @@ func TestTags_Contains(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			got := tt.t.Contains(tt.want)
-			t.Run(fmt.Sprintf("Expected %v", tt.expected), subtest.Value(got).CompareEqual(tt.expected))
+			t.Run(
+				fmt.Sprintf("Expected %v", tt.expected),
+				subtest.Value(got).CompareEqual(tt.expected),
+			)
 		})
 	}
 }
@@ -399,24 +405,27 @@ func TestTags_IsValid(t *testing.T) {
 		{
 			name:     "With existing tags",
 			t:        Tags{[]string{"tag1", "tag2"}},
-			expected: true,
+			expected: false,
 		},
 		{
 			name:     "With nil tags",
 			t:        Tags{},
-			expected: false,
+			expected: true,
 		},
 		{
 			name:     "With empty tags",
 			t:        Tags{},
-			expected: false,
+			expected: true,
 		},
 	}
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			got := tt.t.IsEmpty()
-			t.Run(fmt.Sprintf("Expected %v", tt.expected), subtest.Value(got).CompareEqual(tt.expected))
+			t.Run(
+				fmt.Sprintf("Expected %v", tt.expected),
+				subtest.Value(got).CompareEqual(tt.expected),
+			)
 		})
 	}
 }

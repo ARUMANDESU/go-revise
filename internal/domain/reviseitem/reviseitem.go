@@ -150,6 +150,9 @@ func (r *ReviseItem) UpdateDescription(description string) error {
 
 func (r *ReviseItem) AddTags(tags valueobject.Tags) error {
 	op := errs.Op("domain.reviseitem.add_tags")
+	if tags.IsEmpty() {
+		return errs.NewIncorrectInputError(op, nil, "tags is empty").WithContext("tags", tags)
+	}
 	if err := valueobject.ValidateTags(tags); err != nil {
 		return errs.WithOp(op, err, "tags validation failed")
 	}
@@ -162,7 +165,7 @@ func (r *ReviseItem) AddTags(tags valueobject.Tags) error {
 
 func (r *ReviseItem) RemoveTags(tags valueobject.Tags) error {
 	op := errs.Op("domain.reviseitem.remove_tags")
-	if !tags.IsEmpty() {
+	if tags.IsEmpty() {
 		return errs.
 			NewIncorrectInputError(op, errs.ErrInvalidInput, "tags are empty").
 			WithMessages([]errs.Message{{Key: "message", Value: "tags must be provided, got empty"}})

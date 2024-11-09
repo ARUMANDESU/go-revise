@@ -7,9 +7,12 @@ import (
 
 	"github.com/brianvoe/gofakeit/v7"
 	"github.com/clarify/subtest"
+	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 	"golang.org/x/text/language"
 
 	"github.com/ARUMANDESU/go-revise/internal/domain/valueobject"
+	"github.com/ARUMANDESU/go-revise/pkg/errs"
 )
 
 func TestValidateName(t *testing.T) {
@@ -47,52 +50,48 @@ func TestValidateName_Invalid(t *testing.T) {
 	tests := []struct {
 		name     string
 		username string
-		want     error
 	}{
 		{
 			name:     "With long Name",
 			username: longName(t),
-			want:     ErrInvalidArgument,
 		},
 		{
 			name:     "With empty Name",
 			username: "",
-			want:     ErrInvalidArgument,
 		},
 		{
 			name:     "With whitespace Name",
 			username: " ",
-			want:     ErrInvalidArgument,
 		},
 		{
 			name:     "With tab Name",
 			username: "\t",
-			want:     ErrInvalidArgument,
 		},
 		{
 			name:     "With newline Name",
 			username: "\n",
-			want:     ErrInvalidArgument,
 		},
 		{
 			name:     "With carriage return Name",
 			username: "\r",
-			want:     ErrInvalidArgument,
 		},
 		{
 			name:     "With multiple whitespace Name",
 			username: "  ",
-			want:     ErrInvalidArgument,
 		},
 	}
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
+			expectedErrorType := errs.ErrorTypeIncorrectInput
 			err := validateName(tt.username)
-			t.Run("Expected", subtest.Value(err).ErrorIs(tt.want))
+			t.Run("Expected", func(t *testing.T) {
+				require.Error(t, err, "error is expected")
+				assert.IsType(t, &errs.Error{}, err, "expected error type")
+				assert.True(t, errs.IsErrorType(err, expectedErrorType), "expected error type")
+			})
 		})
 	}
-
 }
 
 func TestValidateDescription(t *testing.T) {
@@ -134,19 +133,22 @@ func TestValidateDescription_Invalid(t *testing.T) {
 	tests := []struct {
 		name        string
 		description string
-		want        error
 	}{
 		{
 			name:        "With long description",
 			description: longDescription(t),
-			want:        ErrInvalidArgument,
 		},
 	}
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
+			expectedErrorType := errs.ErrorTypeIncorrectInput
 			err := validateDescription(tt.description)
-			t.Run("Expect error", subtest.Value(err).ErrorIs(tt.want))
+			t.Run("Expected", func(t *testing.T) {
+				require.Error(t, err, "error is expected")
+				assert.IsType(t, &errs.Error{}, err, "expected error type")
+				assert.True(t, errs.IsErrorType(err, expectedErrorType), "expected error type")
+			})
 		})
 	}
 }
@@ -178,24 +180,26 @@ func TestValidateNextRevisionAt_Invalid(t *testing.T) {
 	tests := []struct {
 		name           string
 		nextRevisionAt time.Time
-		want           error
 	}{
 		{
 			name:           "With zero nextRevisionAt",
 			nextRevisionAt: time.Time{},
-			want:           ErrInvalidArgument,
 		},
 		{
 			name:           "With past nextRevisionAt",
 			nextRevisionAt: time.Now().AddDate(0, 0, -1),
-			want:           ErrNextRevisionAtInPast,
 		},
 	}
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
+			expectedErrorType := errs.ErrorTypeUnknown
 			err := validateNextRevisionAt(tt.nextRevisionAt)
-			t.Run("Expect error", subtest.Value(err).ErrorIs(tt.want))
+			t.Run("Expected", func(t *testing.T) {
+				require.Error(t, err, "error is expected")
+				assert.IsType(t, &errs.Error{}, err, "expected error type")
+				assert.True(t, errs.IsErrorType(err, expectedErrorType), "expected error type")
+			})
 		})
 	}
 }

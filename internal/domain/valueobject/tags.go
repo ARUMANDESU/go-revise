@@ -114,9 +114,9 @@ func (t *Tags) RemoveTags(tags Tags) {
 
 func (t *Tags) IsEmpty() bool {
 	if t == nil || len(t.tags) == 0 {
-		return false
+		return true
 	}
-	return true
+	return false
 }
 
 // TrimSpace trims spaces from each string in the list and returns a new list.

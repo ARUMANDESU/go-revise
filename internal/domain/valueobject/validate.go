@@ -22,8 +22,7 @@ func ValidateTags(value any) error {
 	}
 
 	err := validation.ValidateStruct(&tags,
-		validation.Field(
-			&tags.tags,
+		validation.Field(&tags.tags,
 			validation.Length(0, maxNumTags).
 				Error(fmt.Sprintf("max number of tags is %d", maxNumTags)),
 			validation.Each(
