@@ -1,28 +1,52 @@
 version: "3"
 
+
 tasks:
-  run:
-    aliases:
-      - r
-    cmd: go run cmd/main.go
+    run:
+        aliases:
+          - r
+        cmd: go run cmd/main.go
 
-  test:coverage:
-    aliases:
-      - tc
-    cmd: gotest -short -coverprofile=./test/c.out ./... && go tool cover -html="./test/c.out"
+    test:coverage:
+        aliases:
+          - tc
+        cmd: gotest -short -coverprofile=./test/c.out ./... && go tool cover -html="./test/c.out"
 
-  test:unit:
-    aliases:
-      - tu
-    cmd: gotest -v -short $(go list ./... | grep -v '/test')
+    test:unit:
+        aliases:
+          - tu
+        cmd: gotest -v -short $(go list ./... | grep -v '/test')
 
-  test:unit:race:
-    aliases:
-      - tur
-    cmd: gotest -v -race -short $(go list ./... | grep -v '/test')
+    test:unit:race:
+        aliases:
+          - tur
+        cmd: gotest -v -race -short $(go list ./... | grep -v '/test')
 
 
-  test:integration:
-    aliases:
-      - ti
-    cmd: gotest -v ./test/...
+    test:integration:
+        aliases:
+          - ti
+        cmd: gotest -v ./test/...
+
+    tunnel:setup:
+        desc: Setup ngrok tunnel and configure Telegram webhook
+        aliases:
+          - ts
+        dotenv: ['.env', '{{.ENV}}/.env.', '{{.HOME}}/.env']
+        deps:
+          - tunnel:kill
+        silent: true
+        cmds:
+            - ./scripts/setup-ngrok.sh "localhost$TELEGRAM_URL"
+             
+    tunnel:kill:
+        desc: Kill existing ngrok processes
+        cmds:
+          - pkill ngrok || true
+
+    local:
+        desc: Start local environment with ngrok tunnel
+        deps:
+          - tunnel:setup
+        cmds:
+          - task: run

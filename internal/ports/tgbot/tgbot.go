@@ -1,6 +1,7 @@
 package tgbot
 
 import (
+	"log/slog"
 	"net/http"
 
 	tb "gopkg.in/telebot.v4"
@@ -40,6 +41,12 @@ func NewPort(cfg config.Telegram, app application.Application) (Port, error) {
 		return Port{}, err
 	}
 
+	slog.Info(
+		"tgbot created",
+		slog.String("url", cfg.URL),
+		slog.String("webhook_url", cfg.WebhookURL),
+	)
+
 	return Port{
 		bot:           bot,
 		webhookPoller: &webhookPoller,
@@ -52,11 +59,13 @@ func NewPort(cfg config.Telegram, app application.Application) (Port, error) {
 // NOTE: this is blocking call
 func (p *Port) Start() error {
 	p.setUpRouter()
+	slog.Info("tgbot is starting")
 	p.bot.Start() // NOTE: this is blocking call
 	return nil
 }
 
 func (p *Port) Stop() error {
 	p.bot.Stop()
+	slog.Info("tgbot is stopped")
 	return nil
 }
