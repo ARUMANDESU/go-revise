@@ -29,7 +29,9 @@ func Do(fn func() error, opts Option) error {
 		fnerr := fn()
 		if fnerr != nil {
 			err = errors.Join(err, fnerr)
+			continue
 		}
+		return nil
 	}
 
 	return err

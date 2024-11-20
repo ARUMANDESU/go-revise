@@ -9,6 +9,7 @@ import (
 	"os"
 	"os/signal"
 	"syscall"
+	"time"
 
 	"github.com/joho/godotenv"
 
@@ -36,7 +37,7 @@ func main() {
 	}
 
 	cfg := config.MustLoad()
-	_, cancel := context.WithCancel(context.Background())
+	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
 
 	log, teardown := logutil.Setup(cfg.EnvMode)
@@ -74,6 +75,7 @@ func main() {
 	userRepo := repository.NewSQLiteRepo(db)
 	reviseitemRepo := reviseitem.NewSQLiteRepo(db)
 
+	var tgBotPort tgbot.Port
 	app := application.Application{
 		User: userapp.Application{
 			Commands: userapp.Commands{
@@ -99,11 +101,15 @@ func main() {
 				Review:            reviseitemcmd.NewReviewHandler(&reviseitemRepo),
 			},
 		},
-		Notification: notification.Application{}, // TODO: implement notification
+		Notification: notification.Application{
+			UserProvider:       &userRepo,
+			ReviseItemProvider: &reviseitemRepo,
+			Notifier:           &tgBotPort,
+		},
 	}
 
 	httpPort := httport.NewPort(cfg, app)
-	tgBotPort, err := tgbot.NewPort(cfg.Telegram, app)
+	tgBotPort, err = tgbot.NewPort(cfg.Telegram, app)
 	if err != nil {
 		log.Error("failed to create new telegram bot port", logutil.Err(err))
 	}
@@ -122,10 +128,10 @@ func main() {
 			log.Error("failed to stop http port", logutil.Err(err))
 		}
 
-		// err = tgBotPort.Stop()
-		// if err != nil {
-		// 	log.Error("failed to stop telegram bot port", logutil.Err(err))
-		// }
+		err = tgBotPort.Stop()
+		if err != nil {
+			log.Error("failed to stop telegram bot port", logutil.Err(err))
+		}
 
 		close(gracefulShutdown)
 	}()
@@ -141,6 +147,22 @@ func main() {
 		err := tgBotPort.Start()
 		if err != nil {
 			log.Error("failed to start telegram bot port", logutil.Err(err))
+		}
+	}()
+
+	go func() {
+		ticker := time.NewTicker(1 * time.Minute)
+		for {
+			select {
+			case <-ticker.C:
+				log.Debug("notifying users")
+				err := app.Notification.NotifyUsers(context.Background())
+				if err != nil {
+					log.Error("failed to notify users", logutil.Err(err))
+				}
+			case <-ctx.Done():
+				return
+			}
 		}
 	}()
 

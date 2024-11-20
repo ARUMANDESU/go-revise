@@ -13,7 +13,6 @@ require (
 	github.com/joho/godotenv v1.5.1
 	github.com/stretchr/testify v1.9.0
 	github.com/telegram-mini-apps/init-data-golang v1.1.5
-	go.uber.org/multierr v1.11.0
 	golang.org/x/text v0.19.0
 	gopkg.in/telebot.v4 v4.0.0-beta.4
 	modernc.org/sqlite v1.33.1

@@ -260,7 +260,7 @@ func (r *SQLiteRepo) GetReviseItem(
 	revisionModels, err := q.GetRevisionItemRevisions(ctx, id.String())
 	if err != nil {
 		return query.ReviseItem{}, sqliterr.
-			Handle(op, err, "failed to get revision item revisions").
+			Handle(op, err, "failed to get revise item revisions").
 			WithContext("id", id)
 	}
 	revisions := make([]time.Time, 0, len(revisionModels))

@@ -290,11 +290,11 @@ func modelToReminderTime(rt string) (user.ReminderTime, error) {
 	const op = "domain.user.sqlite.model_to_reminder_time"
 
 	rt = strings.TrimSpace(rt)
-	if isValidTimeFormat(rt) {
-		return user.ReminderTime{}, errs.
-			NewIncorrectInputError(op, nil, "invalid model reminder time").
-			WithContext("value", rt)
-	}
+	// if isValidTimeFormat(rt) {
+	// 	return user.ReminderTime{}, errs.
+	// 		NewIncorrectInputError(op, nil, "invalid model reminder time").
+	// 		WithContext("value", rt)
+	// }
 	var hour, minute uint8
 	parsed, err := fmt.Sscanf(rt, "%d:%d", &hour, &minute)
 	if err != nil {

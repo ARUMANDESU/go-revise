@@ -3,6 +3,7 @@ package notification
 import (
 	"context"
 	"fmt"
+	"log/slog"
 
 	"github.com/gofrs/uuid"
 
@@ -19,7 +20,10 @@ type UserProvider interface {
 }
 
 type ReviseItemProvider interface {
-	FetchReviseItemsDueForUser(ctx context.Context, userID uuid.UUID) ([]reviseitem.ReviseItem, error)
+	FetchReviseItemsDueForUser(
+		ctx context.Context,
+		userID uuid.UUID,
+	) ([]reviseitem.ReviseItem, error)
 }
 
 type Notifier interface {
@@ -32,7 +36,11 @@ type Application struct {
 	Notifier           Notifier
 }
 
-func NewApplication(userProvider UserProvider, reviseItemProvider ReviseItemProvider, notifier Notifier) Application {
+func NewApplication(
+	userProvider UserProvider,
+	reviseItemProvider ReviseItemProvider,
+	notifier Notifier,
+) Application {
 	return Application{
 		UserProvider:       userProvider,
 		ReviseItemProvider: reviseItemProvider,
@@ -48,6 +56,7 @@ func (a Application) NotifyUsers(ctx context.Context) error {
 	}
 
 	for _, user := range users {
+		slog.Debug("Notifying User", slog.Int64("user", int64(user.ChatID())))
 		err = retry.Do(func() error {
 			reviseItems, err := a.ReviseItemProvider.FetchReviseItemsDueForUser(ctx, user.ID())
 			if err != nil {
@@ -64,6 +73,8 @@ func (a Application) NotifyUsers(ctx context.Context) error {
 			return errs.WithOp(op, err, "failed to notify user")
 		}
 	}
+
+	slog.Debug("Notified all users")
 
 	return nil
 }

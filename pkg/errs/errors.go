@@ -158,7 +158,7 @@ func IsErrorType(err error, errType ErrorType) bool {
 	return e.errType == errType
 }
 
-func WithOp(op Op, err error, msg string) error {
+func WithOp(op Op, err error, msg string) *Error {
 	if err == nil {
 		return nil
 	}

@@ -78,10 +78,11 @@ func (h *Handler) CreateItem(c tb.Context) error {
 		return errs.WithOp(op, err, "failed to parse user ID")
 	}
 
+	reviseItemId := reviseitem.NewReviseItemID()
 	err = h.app.ReviseItem.Command.NewReviseItem.Handle(
 		context.TODO(),
 		command.NewReviseItem{
-			ID:          reviseitem.NewReviseItemID(),
+			ID:          reviseItemId,
 			UserID:      userID,
 			Name:        name,
 			Description: description,
@@ -94,7 +95,7 @@ func (h *Handler) CreateItem(c tb.Context) error {
 
 	revisionItem, err := h.app.ReviseItem.Query.GetReviseItem.Handle(
 		context.TODO(),
-		reviseitemquery.GetReviseItem{ID: reviseitem.NewReviseItemID(), UserID: userID},
+		reviseitemquery.GetReviseItem{ID: reviseItemId, UserID: userID},
 	)
 	if err != nil {
 		return errs.WithOp(op, err, "failed to get revision item")

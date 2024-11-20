@@ -38,6 +38,14 @@ func (t *Tags) StringArray() []string {
 	return t.tags
 }
 
+func (t *Tags) String() string {
+	if t == nil || len(t.tags) == 0 {
+		return ""
+	}
+
+	return strings.Join(t.tags, ", ")
+}
+
 // Contains checks if the given tag exists in the list of tags.
 func (t *Tags) Contains(want string) bool {
 	if t == nil || len(t.tags) == 0 || want == "" {
